@@ -1,6 +1,6 @@
 # **Merrimack College Spatial Computing Lab — 360° Media Website**
 
-This project is building a web platform for the Merrimack College Spatial Computing Lab that hosts 360° immersive images and videos alongside written articles and event pages. The platform has two parts: a public-facing site for students, faculty, and visitors to browse and experience 360° media, and a password-protected admin portal for non-technical lab staff to publish content without touching code.
+This project is building a web platform for the Merrimack College Spatial Computing Lab that hosts 360° immersive images and videos. The platform has two parts: a public-facing site for students, faculty, and visitors to browse and experience 360° media, and a password-protected admin portal for non-technical lab staff to publish content without touching code.
 
 **Tech stack**
 - Next.js (React framework) for both the public site and admin portal
@@ -19,21 +19,21 @@ This project is building a web platform for the Merrimack College Spatial Comput
 - Home — hero, stats bar, featured 360° media grid, recent additions
 - Gallery — filterable grid of all 360° photos and videos by category (study abroad, campus events) and type
 - 360° Viewer — full-screen A-Frame scene that loads equirectangular photos via `<a-sky>` and videos via `<a-videosphere>`, with VR mode support
-- Articles — written posts from lab members about trips, research, and events
-- Events — upcoming and past event pages
 - About — lab mission, how media is collected, tech stack, contact
+
+> **Not in scope (possible future addition):** Articles and Events pages are not being built at this time. An Articles page (written posts from lab members) and an Events page (upcoming and past campus events) may be added in a future phase.
 
 **Admin portal (route: /admin, @merrimack.edu login required)**
 - Dashboard overview of published and draft content
 - Media manager — drag-and-drop upload to Supabase Storage, metadata form (title, collection, category, description, location, featured flag, hotspots)
-- Article editor — rich text editor (TipTap) with draft/publish workflow
-- Event page creator — title, date, location, description, associated 360° media
 - All content changes reflect on the public site immediately upon publish
+
+> **Not in scope (possible future addition):** An article editor (TipTap rich text, draft/publish workflow) and event page creator are not being built at this time and may be added in a future phase.
 
 **Database tables**
 - `media` — id, title, src (Supabase Storage URL), thumb, type, category, collection, description, location, date, featured, hotspots (JSON), published
-- `articles` — id, title, slug, body (rich text), author, published_at, cover_image
-- `events` — id, title, slug, date, location, description, media_id (FK), published
+
+> **Not in scope (possible future addition):** `articles` and `events` tables are not being created at this time. If Articles and Events pages are added in the future, the likely schema would be: `articles` (id, title, slug, body, author, published_at, cover_image) and `events` (id, title, slug, date, location, description, media_id FK, published).
 
 **Media origin**
 360° content comes from Merrimack College study abroad trips and campus events. Legacy media was transferred from a server via SFTP. New media is uploaded directly through the admin portal. Supported formats: equirectangular JPEG/PNG for photos, MP4/WebM for video.

@@ -1,6 +1,6 @@
 # Merrimack College Spatial Computing Lab — 360° Media Website
 
-A web platform for the Merrimack College Spatial Computing Lab that hosts immersive 360° photos and videos alongside written articles and event pages. Includes a public-facing site and a password-protected admin portal for lab staff.
+A web platform for the Merrimack College Spatial Computing Lab that hosts immersive 360° photos and videos. Includes a public-facing site and a password-protected admin portal for lab staff.
 
 ## Tech Stack
 
@@ -46,7 +46,7 @@ A web platform for the Merrimack College Spatial Computing Lab that hosts immers
 ```
 src/
   app/
-    (public)/     ← public-facing pages (home, gallery, viewer, articles, events, about)
+    (public)/     ← public-facing pages (home, gallery, viewer, about)
     admin/        ← protected admin portal (/admin)
     api/          ← API routes
   components/
@@ -58,6 +58,8 @@ src/
     supabase.js   ← Supabase client initialization
     auth.js       ← auth helpers
 ```
+
+> **Not in scope (possible future addition):** Articles and Events pages are not being built at this time and may be added in a future phase.
 
 ## Technical Context
 
