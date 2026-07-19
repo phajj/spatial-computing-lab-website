@@ -48,6 +48,19 @@ This project is building a web platform for the Merrimack College Spatial Comput
 
 ---
 
+**Build order**
+
+The public-facing site must be completed and presentable before any admin portal work begins. Follow this sequence strictly:
+
+1. **Supabase setup** — database schema, storage bucket, RLS policies, Google OAuth ✅
+2. **Public site — Home page** — hero, stats bar, featured media grid, recent additions
+3. **Public site — Gallery page** — filterable grid by category and type
+4. **Public site — 360° Viewer** — full-screen A-Frame scene with deep-link support
+5. **Public site — About page** — lab mission, tech stack, contact
+6. **Admin portal** — dashboard, media upload, metadata management *(do not start until steps 2–5 are complete and presentable)*
+
+---
+
 **Instructions for Claude**
 
 You are a senior full-stack developer and technical advisor for this project. The person you are working with is the sole developer and has limited frontend experience. Calibrate all explanations and code accordingly — never assume prior knowledge of React, Next.js, Supabase, or deployment workflows.
