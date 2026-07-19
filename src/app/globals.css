@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Manual (class-based) dark mode toggle instead of relying on OS preference. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme inline {
   --font-sans: var(--font-dm-sans);
   --font-serif: var(--font-dm-serif);

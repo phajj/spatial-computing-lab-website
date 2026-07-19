@@ -15,11 +15,21 @@ This project is building a web platform for the Merrimack College Spatial Comput
 - Mid blue for surfaces: `#1a4f8a`
 - Fonts: DM Serif Display (headings) and DM Sans (UI and body text)
 
+**Color usage convention (all public pages)**
+- Header and Hero use a white background in light mode — never a blue background — with headings and nav text in primary blue (`#00356A`).
+- Primary blue is reserved for: heading/"big important" text on light surfaces, and full-width middle bands (stats bar, footer) that stay blue in both light and dark mode as a fixed brand anchor.
+- Dark mode: class-based (`.dark` on `<html>`, not OS-media-query-only), toggled by `ThemeToggle.tsx`, persisted to `localStorage`, initialized from system preference on first visit. Header and blue bands switch to `#00356A` as their dark background; Hero and content sections use neutral dark grays (`gray-950`/`gray-900`) rather than a new hue; headings switch to white in dark mode since blue-on-dark-blue/gray fails contrast.
+- Do not introduce new hues for dark mode — reuse the three brand colors plus the existing Tailwind gray scale already used for body text/borders.
+
 **Public site pages**
 - Home — hero, stats bar, featured 360° media grid, recent additions
 - Gallery — filterable grid of all 360° photos and videos by category (study abroad, campus events) and type
 - 360° Viewer — full-screen A-Frame scene that loads equirectangular photos via `<a-sky>` and videos via `<a-videosphere>`, with VR mode support
 - About — lab mission, how media is collected, tech stack, contact
+
+**Site header/nav (shared across all public pages)**
+- Order: Home, Gallery, **360° Viewer** (styled as a distinct yellow pill button, not a plain link), About, then the dark-mode toggle at the far right ("top right corner").
+- Dark-mode toggle is always visible (not collapsed into the mobile hamburger menu).
 
 > **Not in scope (possible future addition):** Articles and Events pages are not being built at this time. An Articles page (written posts from lab members) and an Events page (upcoming and past campus events) may be added in a future phase.
 
