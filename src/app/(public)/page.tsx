@@ -10,9 +10,10 @@ const MEDIA_COLUMNS =
   "id, title, src, thumb, type, category, collection, description, location, date, featured";
 
 const EMPTY_STATS = [
-  { label: "360° Experiences", value: 0 },
-  { label: "Collections", value: 0 },
-  { label: "Locations Captured", value: 0 },
+  { label: "360° Photos", value: 0 },
+  { label: "360° Videos", value: 0 },
+  { label: "Study Abroad Locations", value: 0 },
+  { label: "Campus Events", value: 0 }
 ];
 
 async function getHomePageData() {
@@ -31,7 +32,7 @@ async function getHomePageData() {
         .eq("published", true)
         .order("created_at", { ascending: false })
         .limit(8),
-      supabase.from("media").select("collection, location").eq("published", true),
+      supabase.from("media").select("type, category, location").eq("published", true),
     ]);
 
     if (featuredRes.error) throw featuredRes.error;
@@ -39,20 +40,26 @@ async function getHomePageData() {
     if (allRes.error) throw allRes.error;
 
     const allRows = allRes.data ?? [];
-    const collectionCount = new Set(
-      allRows.map((row) => row.collection).filter(Boolean)
+    const photoCount = allRows.filter((row) => row.type === "photo").length;
+    const videoCount = allRows.filter((row) => row.type === "video").length;
+    const studyAbroadLocationCount = new Set(
+      allRows
+        .filter((row) => row.category === "study_abroad")
+        .map((row) => row.location)
+        .filter(Boolean)
     ).size;
-    const locationCount = new Set(
-      allRows.map((row) => row.location).filter(Boolean)
-    ).size;
+    const campusEventCount = allRows.filter(
+      (row) => row.category === "campus_events"
+    ).length;
 
     return {
       featured: (featuredRes.data ?? []) as MediaItem[],
       recent: (recentRes.data ?? []) as MediaItem[],
       stats: [
-        { label: "360° Experiences", value: allRows.length },
-        { label: "Collections", value: collectionCount },
-        { label: "Locations Captured", value: locationCount },
+        { label: "360° Photos", value: photoCount },
+        { label: "360° Videos", value: videoCount },
+        { label: "Study Abroad Locations", value: studyAbroadLocationCount },
+        { label: "Campus Events", value: campusEventCount },
       ],
     };
   } catch (error) {
