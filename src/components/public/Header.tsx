@@ -2,6 +2,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import ThemeToggle from "./ThemeToggle";
 
@@ -11,11 +12,25 @@ const navLinkClass =
 const mobileLinkClass =
   "rounded px-2 py-2 text-sm font-medium text-[#00356A] hover:bg-black/5 dark:text-white dark:hover:bg-white/10";
 
-const viewerButtonClass =
+const activeButtonClass =
   "rounded-full bg-[#FFE000] px-4 py-1.5 text-sm font-bold text-[#00356A] transition hover:bg-[#00356A] hover:text-white";
+
+const activeMobileButtonClass =
+  "my-1 rounded-full bg-[#FFE000] px-4 py-2 text-center text-sm font-bold text-[#00356A]";
+
+const navItems = [
+  { href: "/", label: "Home" },
+  { href: "/gallery", label: "Gallery" },
+  { href: "/viewer", label: "360° Viewer" },
+  { href: "/about", label: "About" },
+];
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const pathname = usePathname();
+
+  const isActive = (href: string) =>
+    href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   return (
     <header className="sticky top-0 z-50 border-b border-black/5 bg-white shadow-sm dark:border-white/10 dark:bg-[#00356A]">
@@ -34,18 +49,15 @@ export default function Header() {
         </Link>
 
         <nav className="hidden items-center gap-6 sm:flex">
-          <Link href="/" className={navLinkClass}>
-            Home
-          </Link>
-          <Link href="/gallery" className={navLinkClass}>
-            Gallery
-          </Link>
-          <Link href="/viewer" className={viewerButtonClass}>
-            360° Viewer
-          </Link>
-          <Link href="/about" className={navLinkClass}>
-            About
-          </Link>
+          {navItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={isActive(item.href) ? activeButtonClass : navLinkClass}
+            >
+              {item.label}
+            </Link>
+          ))}
         </nav>
 
         <div className="flex items-center gap-2">
@@ -67,30 +79,18 @@ export default function Header() {
 
       {menuOpen && (
         <nav className="flex flex-col gap-1 border-t border-black/5 px-4 pb-4 dark:border-white/10 sm:hidden">
-          <Link href="/" onClick={() => setMenuOpen(false)} className={mobileLinkClass}>
-            Home
-          </Link>
-          <Link
-            href="/gallery"
-            onClick={() => setMenuOpen(false)}
-            className={mobileLinkClass}
-          >
-            Gallery
-          </Link>
-          <Link
-            href="/viewer"
-            onClick={() => setMenuOpen(false)}
-            className="my-1 rounded-full bg-[#FFE000] px-4 py-2 text-center text-sm font-bold text-[#00356A]"
-          >
-            360° Viewer
-          </Link>
-          <Link
-            href="/about"
-            onClick={() => setMenuOpen(false)}
-            className={mobileLinkClass}
-          >
-            About
-          </Link>
+          {navItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={() => setMenuOpen(false)}
+              className={
+                isActive(item.href) ? activeMobileButtonClass : mobileLinkClass
+              }
+            >
+              {item.label}
+            </Link>
+          ))}
         </nav>
       )}
     </header>

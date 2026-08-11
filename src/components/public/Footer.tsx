@@ -12,7 +12,7 @@ export default function Footer() {
             Merrimack College Spatial Computing Lab
           </p>
           <p className="mt-1 text-sm">
-            315 Turnpike Street, North Andover, MA 01845
+            510 Turnpike Street, North Andover, MA 01845
           </p>
         </div>
 
