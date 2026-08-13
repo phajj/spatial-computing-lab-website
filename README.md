@@ -12,7 +12,7 @@ A web platform for the Merrimack College Spatial Computing Lab that hosts immers
 | Media storage | Local disk on the Merrimack CS server, delivered via SFTP or admin upload |
 | 360° Viewer | [A-Frame](https://aframe.io) (WebXR) |
 | Styling | [Tailwind CSS](https://tailwindcss.com) |
-| Deployment | Self-hosted on the Merrimack College CS server, running as a `systemd` service (no reverse proxy — listens directly on port `49168`) |
+| Deployment | Self-hosted on the Merrimack College CS server, running as a `systemd` service (listens directly on port `49168`) |
 
 ## Setup
 
