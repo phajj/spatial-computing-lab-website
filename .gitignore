@@ -40,3 +40,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# sqlite database (server-local state)
+/data/*.db
+/data/*.db-journal
+
+# 360 media (server-local state)
+/media/
