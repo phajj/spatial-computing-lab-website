@@ -34,7 +34,7 @@ A web platform for the Merrimack College Spatial Computing Lab that hosts immers
    cp .env.example .env.local
    ```
    Then open `.env.local` and add:
-   - `DATABASE_URL` — path to the SQLite file, e.g. `file:./data/lab.db`
+   - `DATABASE_URL` — path to the SQLite file, e.g. `file:../data/lab.db` (Prisma resolves this relative to `prisma/schema.prisma`, not the project root, hence the `../`)
    - `MEDIA_DIR` — absolute path to the directory where 360° media lives on disk, e.g. `/srv/spatial-lab/media`
    - `BETTER_AUTH_SECRET` — a long random string used to sign session cookies
    - `BETTER_AUTH_URL` — the site's base URL (e.g. `http://localhost:3000` in dev, the production domain in prod)
