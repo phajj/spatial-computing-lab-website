@@ -3,11 +3,22 @@ import Hero from "@/components/public/Hero";
 import StatsBar from "@/components/public/StatsBar";
 import FeaturedGrid from "@/components/public/FeaturedGrid";
 import RecentAdditions from "@/components/public/RecentAdditions";
-import { supabase } from "@/lib/supabase";
+import { prisma } from "@/lib/db";
 import type { MediaItem } from "@/lib/types";
 
-const MEDIA_COLUMNS =
-  "id, title, src, thumb, type, category, collection, description, location, date, featured";
+const MEDIA_SELECT = {
+  id: true,
+  title: true,
+  src: true,
+  thumb: true,
+  type: true,
+  category: true,
+  collection: true,
+  description: true,
+  location: true,
+  date: true,
+  featured: true,
+} as const;
 
 const EMPTY_STATS = [
   { label: "360° Photos", value: 0 },
@@ -16,30 +27,48 @@ const EMPTY_STATS = [
   { label: "Campus Events", value: 0 }
 ];
 
+function toMediaItem(row: {
+  id: string;
+  title: string;
+  src: string;
+  thumb: string | null;
+  type: string;
+  category: string | null;
+  collection: string | null;
+  description: string | null;
+  location: string | null;
+  date: Date | null;
+  featured: boolean;
+}): MediaItem {
+  return {
+    ...row,
+    type: row.type as MediaItem["type"],
+    category: row.category as MediaItem["category"],
+    date: row.date ? row.date.toISOString() : null,
+  };
+}
+
 async function getHomePageData() {
   try {
-    const [featuredRes, recentRes, allRes] = await Promise.all([
-      supabase
-        .from("media")
-        .select(MEDIA_COLUMNS)
-        .eq("published", true)
-        .eq("featured", true)
-        .order("date", { ascending: false })
-        .limit(6),
-      supabase
-        .from("media")
-        .select(MEDIA_COLUMNS)
-        .eq("published", true)
-        .order("created_at", { ascending: false })
-        .limit(8),
-      supabase.from("media").select("type, category, location").eq("published", true),
+    const [featuredRows, recentRows, allRows] = await Promise.all([
+      prisma.media.findMany({
+        where: { published: true, featured: true },
+        orderBy: { date: "desc" },
+        take: 6,
+        select: MEDIA_SELECT,
+      }),
+      prisma.media.findMany({
+        where: { published: true },
+        orderBy: { createdAt: "desc" },
+        take: 8,
+        select: MEDIA_SELECT,
+      }),
+      prisma.media.findMany({
+        where: { published: true },
+        select: { type: true, category: true, location: true },
+      }),
     ]);
 
-    if (featuredRes.error) throw featuredRes.error;
-    if (recentRes.error) throw recentRes.error;
-    if (allRes.error) throw allRes.error;
-
-    const allRows = allRes.data ?? [];
     const photoCount = allRows.filter((row) => row.type === "photo").length;
     const videoCount = allRows.filter((row) => row.type === "video").length;
     const studyAbroadLocationCount = new Set(
@@ -53,8 +82,8 @@ async function getHomePageData() {
     ).length;
 
     return {
-      featured: (featuredRes.data ?? []) as MediaItem[],
-      recent: (recentRes.data ?? []) as MediaItem[],
+      featured: featuredRows.map(toMediaItem),
+      recent: recentRows.map(toMediaItem),
       stats: [
         { label: "360° Photos", value: photoCount },
         { label: "360° Videos", value: videoCount },
