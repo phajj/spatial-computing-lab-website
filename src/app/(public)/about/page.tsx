@@ -19,7 +19,7 @@ export default function AboutPage() {
             Placeholder mission statement for the Spatial Computing Lab
           </h1>
           <p className="max-w-2xl text-lg text-gray-600 dark:text-gray-300 sm:text-xl">
-            *Placeholder text* Description of the Spatial Computing Lab's mission.
+            *Placeholder text* Description of the Spatial Computing Lab&apos;s mission.
           </p>
         </div>
       </section>
