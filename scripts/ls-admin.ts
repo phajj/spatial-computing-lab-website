@@ -1,13 +1,17 @@
 // scripts/ls-admin.ts
 //
-// Lists all admin accounts (email, name, created date, last sign-in).
-// Read-only — useful for checking who has access, or finding the email
-// to pass to delete-admin.
+// Lists all admin accounts (email, name, created date, last sign-in,
+// password last changed). Read-only — useful for checking who has
+// access, or finding the email to pass to delete-admin/change-pass.
 //
 // "Last sign-in" is the createdAt of that admin's most recent session
 // row. Note this reflects the last sign-in that still has a live session
 // row in the database — signing out deletes that row, so a recently
 // signed-out admin may show an earlier sign-in (or "Never") instead.
+//
+// "Password changed" is the updatedAt of the admin's credential account
+// row, shown only if it differs from that row's createdAt (i.e. the
+// password was changed via change-pass since the account was created).
 //
 // Usage:
 //   npm run ls-admin
@@ -38,6 +42,11 @@ async function main() {
         take: 1,
         select: { createdAt: true },
       },
+      accounts: {
+        where: { providerId: "credential" },
+        take: 1,
+        select: { createdAt: true, updatedAt: true },
+      },
     },
   });
 
@@ -51,8 +60,15 @@ async function main() {
     const lastSignIn = admin.sessions[0]
       ? formatDate(admin.sessions[0].createdAt)
       : "Never";
+
+    const account = admin.accounts[0];
+    const passwordChanged =
+      account && account.updatedAt.getTime() !== account.createdAt.getTime()
+        ? formatDate(account.updatedAt)
+        : "Never";
+
     console.log(
-      `${admin.email}${name} — created ${formatDate(admin.createdAt)} — last sign-in ${lastSignIn}`
+      `${admin.email}${name} — created ${formatDate(admin.createdAt)} — last sign-in ${lastSignIn} — password changed ${passwordChanged}`
     );
   }
 }
