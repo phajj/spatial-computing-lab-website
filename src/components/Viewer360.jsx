@@ -5,6 +5,10 @@
 
 import { useEffect, useRef, useState } from "react";
 
+const ZOOM_MIN = 1;
+const ZOOM_MAX = 4;
+const ZOOM_STEP = 0.1;
+
 // A-Frame touches `window`/`navigator` as soon as it's imported, so it can only
 // be loaded in the browser. Importing it inside an effect (instead of at the
 // top of the file) keeps this component safe to render on the server.
@@ -18,6 +22,11 @@ export default function Viewer360({ media }) {
   // toggle to switch back to the "grab and drag the scene" feel.
   const [reverseDrag, setReverseDrag] = useState(true);
   const [isImmersive, setIsImmersive] = useState(false);
+  const [zoom, setZoom] = useState(1);
+
+  useEffect(() => {
+    setZoom(1);
+  }, [media?.id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -42,6 +51,23 @@ export default function Viewer360({ media }) {
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
+
+  // Scroll-to-zoom needs a non-passive listener so preventDefault() can stop
+  // the page itself from scrolling while the cursor is over the viewer;
+  // React's onWheel prop is passive by default and can't do that.
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    function handleWheel(event) {
+      event.preventDefault();
+      setZoom((current) => {
+        const next = current + (event.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP);
+        return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, next));
+      });
+    }
+    container.addEventListener("wheel", handleWheel, { passive: false });
+    return () => container.removeEventListener("wheel", handleWheel);
+  }, [aframeReady]);
 
   function toggleFullscreen() {
     if (document.fullscreenElement) {
@@ -107,7 +133,7 @@ export default function Viewer360({ media }) {
         )}
 
         <a-entity
-          camera
+          camera={`zoom: ${zoom}`}
           look-controls={`reverseMouseDrag: ${reverseDrag}`}
           wasd-controls="enabled: false"
           position="0 1.6 0"
@@ -148,6 +174,22 @@ export default function Viewer360({ media }) {
             }`}
           />
         </button>
+      </div>
+
+      <div className="absolute right-4 top-1/2 z-[10000] flex -translate-y-1/2 flex-col items-center gap-2 rounded-full bg-black/60 px-3 py-3 text-xs font-bold uppercase tracking-wide text-white">
+        <span>Zoom</span>
+        <div className="relative h-28 w-8">
+          <input
+            type="range"
+            min={ZOOM_MIN}
+            max={ZOOM_MAX}
+            step={ZOOM_STEP}
+            value={zoom}
+            onChange={(event) => setZoom(Number(event.target.value))}
+            aria-label="Zoom level"
+            className="absolute left-1/2 top-1/2 h-1.5 w-24 -translate-x-1/2 -translate-y-1/2 -rotate-90 cursor-pointer appearance-none rounded-full bg-white/30 accent-[#FFE000]"
+          />
+        </div>
       </div>
 
       <button
