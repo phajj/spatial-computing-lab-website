@@ -1,8 +1,9 @@
 // scripts/ls-admin.ts
 //
 // Lists all admin accounts (email, name, created date, last sign-in,
-// password last changed). Read-only — useful for checking who has
-// access, or finding the email to pass to delete-admin/change-pass.
+// password last changed, locked status). Read-only — useful for
+// checking who has access, or finding the email to pass to
+// delete-admin/change-pass/lock-admin.
 //
 // "Last sign-in" is the createdAt of that admin's most recent session
 // row. Note this reflects the last sign-in that still has a live session
@@ -37,6 +38,7 @@ async function main() {
       email: true,
       name: true,
       createdAt: true,
+      disabled: true,
       sessions: {
         orderBy: { createdAt: "desc" },
         take: 1,
@@ -67,8 +69,10 @@ async function main() {
         ? formatDate(account.updatedAt)
         : "Never";
 
+    const status = admin.disabled ? "LOCKED" : "active";
+
     console.log(
-      `${admin.email}${name} — created ${formatDate(admin.createdAt)} — last sign-in ${lastSignIn} — password changed ${passwordChanged}`
+      `${admin.email}${name} — ${status} — created: ${formatDate(admin.createdAt)} — last sign-in: ${lastSignIn} — password changed: ${passwordChanged}`
     );
   }
 }

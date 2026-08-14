@@ -25,7 +25,11 @@ export default function AdminLoginPage() {
     setSubmitting(false);
 
     if (signInError) {
-      setError("Incorrect email or password.");
+      setError(
+        signInError.code === "ACCOUNT_LOCKED"
+          ? `Error to sign-in: ${signInError.message}`
+          : "Incorrect email or password."
+      );
       return;
     }
 

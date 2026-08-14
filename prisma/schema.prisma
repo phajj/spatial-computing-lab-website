@@ -37,6 +37,10 @@ model Admin {
   email         String    @unique
   emailVerified Boolean   @default(false) @map("email_verified")
   name          String?
+  // Locked accounts (via the lock-admin script) can't sign in — enforced
+  // in the session-create hook in src/lib/auth.ts — without deleting the
+  // account or its history.
+  disabled      Boolean   @default(false)
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 

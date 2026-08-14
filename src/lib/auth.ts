@@ -1,5 +1,5 @@
 // src/lib/auth.ts
-import { betterAuth } from "better-auth";
+import { APIError, betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { headers as nextHeaders } from "next/headers";
 import { prisma } from "./db";
@@ -32,6 +32,26 @@ export const auth = betterAuth({
     modelName: "account",
     fields: {
       userId: "adminId",
+    },
+  },
+  databaseHooks: {
+    session: {
+      create: {
+        // Blocks sign-in for accounts locked via the lock-admin script,
+        // with a message the login page displays as-is.
+        before: async (session) => {
+          const admin = await prisma.admin.findUnique({
+            where: { id: session.userId },
+            select: { disabled: true },
+          });
+          if (admin?.disabled) {
+            throw APIError.from("FORBIDDEN", {
+              message: "Account is locked. Please contact the account admin.",
+              code: "ACCOUNT_LOCKED",
+            });
+          }
+        },
+      },
     },
   },
 });

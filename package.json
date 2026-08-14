@@ -12,7 +12,9 @@
     "create-admin": "dotenv -e .env.local -- tsx scripts/create-admin.ts",
     "delete-admin": "dotenv -e .env.local -- tsx scripts/delete-admin.ts",
     "ls-admin": "dotenv -e .env.local -- tsx scripts/ls-admin.ts",
-    "change-pass": "dotenv -e .env.local -- tsx scripts/change-pass.ts"
+    "change-pass": "dotenv -e .env.local -- tsx scripts/change-pass.ts",
+    "lock-admin": "dotenv -e .env.local -- tsx scripts/lock-admin.ts",
+    "unlock-admin": "dotenv -e .env.local -- tsx scripts/unlock-admin.ts"
   },
   "dependencies": {
     "@prisma/client": "6.19.3",

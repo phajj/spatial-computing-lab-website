@@ -66,7 +66,7 @@ There is no self-service signup — admin accounts (email + password, via Better
   npm run create-admin -- --email you@merrimack.edu --password <temporary-password>
   ```
 
-- **List admins** — shows every admin's email, name, creation date, last sign-in, and when their password was last changed
+- **List admins** — shows every admin's email, name, locked status, creation date, last sign-in, and when their password was last changed
   ```bash
   npm run ls-admin
   ```
@@ -74,6 +74,16 @@ There is no self-service signup — admin accounts (email + password, via Better
 - **Change an admin's password** — also signs them out of every active session, so a leaked old password can't still be used
   ```bash
   npm run change-pass -- --email you@merrimack.edu --password <new-password>
+  ```
+
+- **Lock an admin** — blocks sign-in without deleting the account or its history.The command also signs them out of every active session
+  ```bash
+  npm run lock-admin -- --email you@merrimack.edu
+  ```
+
+- **Unlock an admin** — restores sign-in access
+  ```bash
+  npm run unlock-admin -- --email you@merrimack.edu
   ```
 
 - **Delete an admin** — also removes that admin's sessions and password/credential record (cascading delete, see `prisma/schema.prisma`)
@@ -103,6 +113,8 @@ scripts/
   create-admin.ts ← creates an admin account (see Setup step 5)
   ls-admin.ts     ← lists all admin accounts
   change-pass.ts  ← changes an admin's password (see Managing Admin Accounts)
+  lock-admin.ts   ← locks an admin out without deleting the account (see Managing Admin Accounts)
+  unlock-admin.ts ← restores a locked admin's access (see Managing Admin Accounts)
   delete-admin.ts ← deletes an admin account (see Managing Admin Accounts)
 data/
   lab.db          ← SQLite database file (not committed — see .gitignore)
