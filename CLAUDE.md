@@ -33,7 +33,7 @@ This project is building a web platform for the Merrimack College Spatial Comput
 - Home — hero, stats bar, featured 360° media grid, recent additions
 - Gallery — filterable grid of all 360° photos and videos by category (study abroad, campus events) and type
 - 360° Viewer — full-screen A-Frame scene that loads equirectangular photos via `<a-sky>` and videos via `<a-videosphere>`, with VR mode support
-- About — lab mission, how media is collected, tech stack, contact (this will be placeholder info for now)
+- About — lab mission, contact (this will be placeholder info for now)
 
 **Site header/nav (shared across all public pages)**
 - Order: Home, Gallery, **360° Viewer** (styled as a distinct yellow pill button, not a plain link), About, then the dark-mode toggle at the far right ("top right corner").
@@ -77,7 +77,7 @@ The public-facing site must be completed and presentable before any admin portal
 2. **Public site — Home page** — hero, stats bar, featured media grid, recent additions
 3. **Public site — Gallery page** — filterable grid by category and type
 4. **Public site — 360° Viewer** — full-screen A-Frame scene with deep-link support
-5. **Public site — About page** — lab mission, tech stack, contact (this will be placeholder info for now)
+5. **Public site — About page** — lab mission, contact (this will be placeholder info for now)
 6. **Admin portal** — dashboard, media upload, metadata management *(do not start until steps 2–5 are complete and presentable)*
 
 ---
