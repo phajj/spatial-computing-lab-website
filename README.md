@@ -66,7 +66,7 @@ There is no self-service signup — admin accounts (email + password, via Better
   npm run create-admin -- --email you@merrimack.edu --password <temporary-password>
   ```
 
-- **List admins** — shows every admin's email, name, locked status, creation date, last sign-in, and when their password was last changed
+- **List admins** — shows every admin's email, name, locked status, creation date, last sign-in, when their password was last changed, and whether a forced reset is pending
   ```bash
   npm run ls-admin
   ```
@@ -74,6 +74,11 @@ There is no self-service signup — admin accounts (email + password, via Better
 - **Change an admin's password** — also signs them out of every active session, so a leaked old password can't still be used
   ```bash
   npm run change-pass -- --email you@merrimack.edu --password <new-password>
+  ```
+
+- **Force-reset an admin's password** — unlike `change-pass`, generates and prints a random temporary password rather than taking one you choose; use this for a suspected-compromised account or to issue a fresh temp password without picking one yourself. Also signs them out everywhere and marks the account as needing a password change (`ls-admin` shows this as "RESET REQUIRED" — note the admin portal doesn't have a UI to act on that flag yet, since the dashboard isn't built)
+  ```bash
+  npm run force-reset -- --email you@merrimack.edu
   ```
 
 - **Lock an admin** — blocks sign-in without deleting the account or its history.The command also signs them out of every active session
@@ -113,6 +118,7 @@ scripts/
   create-admin.ts ← creates an admin account (see Setup step 5)
   ls-admin.ts     ← lists all admin accounts
   change-pass.ts  ← changes an admin's password (see Managing Admin Accounts)
+  force-reset.ts  ← resets an admin's password to a random temporary one (see Managing Admin Accounts)
   lock-admin.ts   ← locks an admin out without deleting the account (see Managing Admin Accounts)
   unlock-admin.ts ← restores a locked admin's access (see Managing Admin Accounts)
   delete-admin.ts ← deletes an admin account (see Managing Admin Accounts)

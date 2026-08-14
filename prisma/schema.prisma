@@ -41,6 +41,11 @@ model Admin {
   // in the session-create hook in src/lib/auth.ts — without deleting the
   // account or its history.
   disabled      Boolean   @default(false)
+  // Set by the force-reset script when an admin resets someone else's
+  // password. Not yet enforced anywhere — there's no admin-portal UI to
+  // prompt for a new password on next login until the dashboard exists.
+  // For now this is just a flag ls-admin surfaces.
+  mustChangePassword Boolean @default(false) @map("must_change_password")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
