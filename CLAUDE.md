@@ -42,16 +42,19 @@ This project is building a web platform for the Merrimack College Spatial Comput
 > **Not in scope (possible future addition):** Articles and Events pages are not being built at this time. An Articles page (written posts from lab members) and an Events page (upcoming and past campus events) may be added in a future phase.
 
 **Admin portal (route: /admin, session login required)**
-- Dashboard overview of published and draft content
-- Media manager — drag-and-drop upload, saves the file to disk under `MEDIA_DIR` and writes a matching metadata row (title, collection, category, description, location, featured flag, hotspots)
-- All content changes reflect on the public site immediately upon publish
-- There is no self-service signup — accounts are created via the `create-admin` script (see README)
+- ✅ Dashboard (`/admin`) — read-only overview: total/published/draft counts and a table of all media
+- ✅ Self-service password change (`/admin/change-password`) — current password, then new password twice; revokes every other active session on success; clears any pending forced reset
+- ✅ Account management — no self-service signup; accounts and their lifecycle are managed entirely via CLI scripts in `scripts/` (`create-admin`, `ls-admin`, `change-pass`, `force-reset`, `lock-admin`, `unlock-admin`, `delete-admin`), all logged to an admin audit log (`admin-log`) — see README's "Managing Admin Accounts" section
+- ⬜ **To do:** Media manager — drag-and-drop upload, saves the file to disk under `MEDIA_DIR` and writes a matching metadata row (title, collection, category, description, location, featured flag, hotspots). This is the next piece of the admin portal to build.
+- Once built, all content changes should reflect on the public site immediately upon publish
 
 > **Not in scope (possible future addition):** An article editor (TipTap rich text, draft/publish workflow) and event page creator are not being built at this time and may be added in a future phase.
 
 **Database tables (SQLite via Prisma, see `prisma/schema.prisma`)**
-- `media` — id, title, src (relative path under `MEDIA_DIR`, e.g. `/media/greece-spring-2026/lighthouse.jpg`), thumb, type, category, collection, description, location, date, featured, hotspots (JSON), published
-- `admins` — id, email, password_hash, created_at
+- `media` — id, title, src (relative path under `MEDIA_DIR`, e.g. `/media/greece-spring-2026/lighthouse.jpg`), thumb, type, category, collection, description, location, date, featured, hotspots (JSON string), published. Defined; not yet writable from the UI until the media manager exists.
+- `admins` — id, email, emailVerified, name, disabled (for `lock-admin`), mustChangePassword (for `force-reset`), created_at, updated_at. The password itself isn't a column here — Better Auth stores it on its own `accounts` table (credential provider), keyed to the admin.
+- `admin_audit_log` — id, action, admin_email, details, created_at. Records every account-management action from the scripts above. Deliberately has no foreign key to `admins`, so history survives account deletion.
+- `sessions`, `accounts`, `verifications` — Better Auth's own tables, not hand-rolled.
 
 > **Not in scope (possible future addition):** `articles` and `events` tables are not being created at this time. If Articles and Events pages are added in the future, the likely schema would be: `articles` (id, title, slug, body, author, published_at, cover_image) and `events` (id, title, slug, date, location, description, media_id FK, published).
 
@@ -73,13 +76,17 @@ This project is building a web platform for the Merrimack College Spatial Comput
 
 The public-facing site must be completed and presentable before any admin portal work begins. Follow this sequence strictly:
 
-1. **Server & database setup** — SQLite schema via Prisma, `MEDIA_DIR` directory structure, Better Auth config, first admin account 
-2. **Public site — Home page** — hero, stats bar, featured media grid, recent additions
-3. **Public site — Gallery page** — filterable grid by category and type
-4. **Public site — 360° Viewer** — full-screen A-Frame scene with deep-link support
-5. **Public site — About page** — lab mission, contact (this will be placeholder info for now)
-6. **Admin portal** — dashboard, media upload, metadata management *(do not start until steps 2–5 are complete and presentable)*
-
+1. ✅ **Server & database setup** — SQLite schema via Prisma, Better Auth config, first admin account. (`MEDIA_DIR` is wired into config/env but nothing writes to it yet — that lands with the media manager in step 6.)
+2. ✅ **Public site — Home page** — hero, stats bar, featured media grid, recent additions
+3. ✅ **Public site — Gallery page** — filterable grid by category and type
+4. ✅ **Public site — 360° Viewer** — full-screen A-Frame scene with deep-link support (`#viewer=<id>`, `#collection=<slug>`)
+5. ✅ **Public site — About page** — built with placeholder mission/contact copy, as planned; real copy can drop in later without a rebuild
+6. **Admin portal** *(steps 2–5 are complete, so this is underway)*
+   - ✅ Dashboard (read-only) and self-service password change
+   - ✅ Admin account management (CLI scripts) and audit log
+   - ⬜ **To do next:** Media manager — drag-and-drop upload, writes the file to `MEDIA_DIR` and creates its metadata row (title, collection, category, description, location, featured flag, hotspots)
+   - ⬜ **To do after that:** metadata editing/publish workflow for existing media, once upload exists
+  - ⬜ **To do after that:** Write Admin Portal Knowledge Base article / usermanual
 ---
 
 **Instructions for Claude**
@@ -109,19 +116,26 @@ You are a senior full-stack developer and technical advisor for this project. Th
 ```
 src/
   app/
-    (public)/         ← public-facing pages
-    admin/            ← protected admin portal
-    api/              ← API routes if needed
+    (public)/         ← public-facing pages (home, gallery, viewer, about)
+    admin/
+      login/          ← /admin/login (public, no session required)
+      (protected)/    ← everything else under /admin (session required)
+    api/
+      auth/[...all]/  ← Better Auth's catch-all route handler
   components/
-    ui/               ← reusable UI primitives
-    admin/            ← admin-only components
+    ui/               ← reusable UI primitives (not needed yet — none built)
+    admin/            ← admin-only components (e.g. AdminNav.tsx)
     public/           ← public-site components
-    Viewer360.jsx      ← A-Frame viewer, isolated here only
+    Viewer360.jsx     ← A-Frame viewer, isolated here only
   lib/
-    db.js             ← Prisma client initialization
-    auth.js           ← Better Auth config and session helpers
+    db.ts             ← Prisma client initialization
+    auth.ts           ← Better Auth config and session helpers
+    auth-client.ts    ← Better Auth client hooks for client components
+    audit-log.ts      ← writes entries to the admin audit log
+    types.ts          ← shared TS types (e.g. MediaItem)
 prisma/
-  schema.prisma       ← SQLite schema (media, admins)
+  schema.prisma       ← SQLite schema (media, admins, admin_audit_log, plus Better Auth's tables)
+scripts/              ← admin account management CLI scripts (see README)
 ```
 
 **What to do when asked for help on a GitHub issue**
