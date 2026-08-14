@@ -96,6 +96,13 @@ There is no self-service signup — admin accounts (email + password, via Better
   npm run delete-admin -- --email you@merrimack.edu
   ```
 
+- **View the admin audit log** — every action above (`created`, `deleted`, `password_changed`, `force_reset`, `locked`, `unlocked`) is recorded with a timestamp. Entries survive account deletion, since they're not tied to the account by a foreign key. Filter by account and/or a date range; `--since`/`--until` accept `YYYY-MM-DD` (inclusive of the whole day) or a full ISO timestamp
+  ```bash
+  npm run admin-log
+  npm run admin-log -- --email you@merrimack.edu
+  npm run admin-log -- --since 2026-08-01 --until 2026-08-14
+  ```
+
 ## Project Structure
 
 ```
@@ -112,11 +119,13 @@ src/
   lib/
     db.ts         ← Prisma client initialization
     auth.ts       ← Better Auth config and session helpers
+    audit-log.ts  ← writes entries to the admin audit log (used by the scripts below)
 prisma/
   schema.prisma   ← SQLite schema (media, admins, plus Better Auth's session/account tables)
 scripts/
   create-admin.ts ← creates an admin account (see Setup step 5)
   ls-admin.ts     ← lists all admin accounts
+  admin-log.ts    ← shows the admin audit log, with account/date filtering (see Managing Admin Accounts)
   change-pass.ts  ← changes an admin's password (see Managing Admin Accounts)
   force-reset.ts  ← resets an admin's password to a random temporary one (see Managing Admin Accounts)
   lock-admin.ts   ← locks an admin out without deleting the account (see Managing Admin Accounts)

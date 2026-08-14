@@ -92,6 +92,22 @@ model Account {
   @@map("accounts")
 }
 
+// Audit trail of admin-account management actions (create-admin,
+// delete-admin, change-pass, force-reset, lock-admin, unlock-admin).
+// Deliberately not related to Admin by foreign key — a deleted admin's
+// history (including the deletion itself) must stay readable, so this
+// stores a plain email snapshot instead of a relation that would
+// cascade-delete along with the account.
+model AdminAuditLog {
+  id         String   @id @default(cuid())
+  action     String
+  adminEmail String   @map("admin_email")
+  details    String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("admin_audit_log")
+}
+
 model Verification {
   id         String   @id @default(cuid())
   identifier String

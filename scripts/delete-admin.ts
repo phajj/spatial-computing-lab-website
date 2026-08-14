@@ -7,6 +7,7 @@
 // Usage:
 //   npm run delete-admin -- --email you@merrimack.edu
 import { prisma } from "../src/lib/db";
+import { logAdminAction } from "../src/lib/audit-log";
 
 function parseArgs(argv: string[]) {
   const args: Record<string, string> = {};
@@ -44,6 +45,8 @@ async function main() {
   }
 
   await prisma.admin.delete({ where: { id: existing.id } });
+
+  await logAdminAction("deleted", normalizedEmail);
 
   console.log(`Deleted admin account for ${normalizedEmail}.`);
 }

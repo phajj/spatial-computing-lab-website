@@ -15,7 +15,8 @@
     "change-pass": "dotenv -e .env.local -- tsx scripts/change-pass.ts",
     "lock-admin": "dotenv -e .env.local -- tsx scripts/lock-admin.ts",
     "unlock-admin": "dotenv -e .env.local -- tsx scripts/unlock-admin.ts",
-    "force-reset": "dotenv -e .env.local -- tsx scripts/force-reset.ts"
+    "force-reset": "dotenv -e .env.local -- tsx scripts/force-reset.ts",
+    "admin-log": "dotenv -e .env.local -- tsx scripts/admin-log.ts"
   },
   "dependencies": {
     "@prisma/client": "6.19.3",

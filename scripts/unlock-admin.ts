@@ -6,6 +6,7 @@
 // Usage:
 //   npm run unlock-admin -- --email you@merrimack.edu
 import { prisma } from "../src/lib/db";
+import { logAdminAction } from "../src/lib/audit-log";
 
 function parseArgs(argv: string[]) {
   const args: Record<string, string> = {};
@@ -51,6 +52,8 @@ async function main() {
     where: { id: admin.id },
     data: { disabled: false },
   });
+
+  await logAdminAction("unlocked", normalizedEmail);
 
   console.log(`Unlocked admin account for ${normalizedEmail}.`);
 }

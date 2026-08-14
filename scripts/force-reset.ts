@@ -19,6 +19,7 @@
 import { randomBytes } from "crypto";
 import { hashPassword } from "better-auth/crypto";
 import { prisma } from "../src/lib/db";
+import { logAdminAction } from "../src/lib/audit-log";
 
 function parseArgs(argv: string[]) {
   const args: Record<string, string> = {};
@@ -95,6 +96,14 @@ async function main() {
   const { count } = await prisma.session.deleteMany({
     where: { adminId: admin.id },
   });
+
+  // Deliberately never logs the temp password itself — the audit log
+  // is a readable history, not a place to keep credentials.
+  await logAdminAction(
+    "force_reset",
+    normalizedEmail,
+    `revoked ${count} session(s)`
+  );
 
   console.log(
     `Force-reset password for ${normalizedEmail}. Signed out ${count} active session(s).`

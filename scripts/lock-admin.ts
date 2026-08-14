@@ -8,6 +8,7 @@
 // Usage:
 //   npm run lock-admin -- --email you@merrimack.edu
 import { prisma } from "../src/lib/db";
+import { logAdminAction } from "../src/lib/audit-log";
 
 function parseArgs(argv: string[]) {
   const args: Record<string, string> = {};
@@ -57,6 +58,8 @@ async function main() {
   const { count } = await prisma.session.deleteMany({
     where: { adminId: admin.id },
   });
+
+  await logAdminAction("locked", normalizedEmail, `revoked ${count} session(s)`);
 
   console.log(
     `Locked admin account for ${normalizedEmail}. Signed out ${count} active session(s).`

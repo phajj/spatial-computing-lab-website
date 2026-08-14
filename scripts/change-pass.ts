@@ -7,6 +7,7 @@
 //   npm run change-pass -- --email you@merrimack.edu --password <new-password>
 import { hashPassword } from "better-auth/crypto";
 import { prisma } from "../src/lib/db";
+import { logAdminAction } from "../src/lib/audit-log";
 
 function parseArgs(argv: string[]) {
   const args: Record<string, string> = {};
@@ -73,6 +74,12 @@ async function main() {
   const { count } = await prisma.session.deleteMany({
     where: { adminId: admin.id },
   });
+
+  await logAdminAction(
+    "password_changed",
+    normalizedEmail,
+    `revoked ${count} session(s)`
+  );
 
   console.log(
     `Changed password for ${normalizedEmail}. Signed out ${count} active session(s).`
