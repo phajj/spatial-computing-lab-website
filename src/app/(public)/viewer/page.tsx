@@ -45,6 +45,23 @@ function toMediaItem(row: {
   };
 }
 
+// TEMP: local test item so the viewer can be checked against a real 360°
+// photo without SFTP-ing anything to the server first. Served straight out
+// of `public/temp-test-360.jpg`. Remove this block (and the file) once done.
+const TEMP_TEST_ITEM: MediaItem = {
+  id: "temp-test",
+  title: "Temp Test Image",
+  src: "/temp-test-360.jpg",
+  thumb: null,
+  type: "photo",
+  category: null,
+  collection: null,
+  description: "Local test upload — not from the database.",
+  location: null,
+  date: null,
+  featured: false,
+};
+
 async function getViewerMedia(): Promise<{ media: MediaItem[]; loadError: boolean }> {
   try {
     const rows = await prisma.media.findMany({
@@ -52,10 +69,10 @@ async function getViewerMedia(): Promise<{ media: MediaItem[]; loadError: boolea
       orderBy: { date: "asc" },
       select: MEDIA_SELECT,
     });
-    return { media: rows.map(toMediaItem), loadError: false };
+    return { media: [...rows.map(toMediaItem), TEMP_TEST_ITEM], loadError: false };
   } catch (error) {
     console.error("Failed to load media for viewer:", error);
-    return { media: [], loadError: true };
+    return { media: [TEMP_TEST_ITEM], loadError: false };
   }
 }
 
