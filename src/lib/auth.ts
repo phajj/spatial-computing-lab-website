@@ -28,6 +28,16 @@ export const auth = betterAuth({
     fields: {
       userId: "adminId",
     },
+    // Caches the session in a signed cookie so most admin page loads
+    // skip the database lookup. Trade-off: within this window, a
+    // session revoked server-side (lock-admin, delete-admin, a password
+    // change) keeps working until the cache expires, instead of being
+    // cut off immediately — kept short (well under Better Auth's 5-minute
+    // default) to bound that staleness.
+    cookieCache: {
+      enabled: true,
+      maxAge: 60,
+    },
   },
   account: {
     modelName: "account",

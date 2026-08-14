@@ -81,7 +81,7 @@ There is no self-service signup — admin accounts (email + password, via Better
   npm run force-reset -- --email you@merrimack.edu
   ```
 
-- **Lock an admin** — blocks sign-in without deleting the account or its history.The command also signs them out of every active session
+- **Lock an admin** — blocks sign-in without deleting the account or its history.The command also signs them out of every active session. An already-open browser tab can keep working for up to 60 seconds after this, since admin sessions are cached in a cookie for that long (`session.cookieCache` in `src/lib/auth.ts`) (see Admin Portal below)
   ```bash
   npm run lock-admin -- --email you@merrimack.edu
   ```
@@ -91,7 +91,7 @@ There is no self-service signup — admin accounts (email + password, via Better
   npm run unlock-admin -- --email you@merrimack.edu
   ```
 
-- **Delete an admin** — also removes that admin's sessions and password/credential record (cascading delete, see `prisma/schema.prisma`)
+- **Delete an admin** — also removes that admin's sessions and password/credential record (cascading delete, see `prisma/schema.prisma`). As with locking, an already-open browser tab can keep working for up to 60 seconds after this, due to the session cookie cache (see Admin Portal below)
   ```bash
   npm run delete-admin -- --email you@merrimack.edu
   ```
@@ -105,7 +105,7 @@ There is no self-service signup — admin accounts (email + password, via Better
 
 ## Admin Portal
 
-Reached at `/admin` after signing in at `/admin/login`. Everything under `/admin` except `/admin/login` requires a session — enforced server-side in `src/app/admin/(protected)/layout.tsx`, which redirects to `/admin/login` if there isn't one.
+Reached at `/admin` after signing in at `/admin/login`. Everything under `/admin` except `/admin/login` requires a session, enforced server-side in `src/app/admin/(protected)/layout.tsx`, which redirects to `/admin/login` if there isn't one. Session checks are cached in a signed cookie for 60 seconds (`session.cookieCache` in `src/lib/auth.ts`) so most admin page loads skip the database.
 
 - **Dashboard** (`/admin`) — total/published/draft counts and a table of all media. Read-only for now; uploading and editing media (the media manager) hasn't been built yet.
 - **Change Password** (`/admin/change-password`) — lets a signed-in admin change their own password: current password, then the new one twice. Requires the current password to match (same check Better Auth uses at sign-in) and revokes every other active session on success, while keeping the current one signed in. If the account had a pending forced reset (see `force-reset` above), this clears it.
