@@ -12,6 +12,10 @@ export default function Viewer360({ media }) {
   const [aframeReady, setAframeReady] = useState(false);
   const videoRef = useRef(null);
   const [muted, setMuted] = useState(true);
+  // Default drag direction is inverted from A-Frame's stock look-controls
+  // (dragging left turns the view right, like turning your head) with a
+  // button to flip back to the "grab and drag the scene" feel.
+  const [reverseDrag, setReverseDrag] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -68,7 +72,7 @@ export default function Viewer360({ media }) {
 
         <a-entity
           camera
-          look-controls="reverseMouseDrag: false"
+          look-controls={`reverseMouseDrag: ${reverseDrag}`}
           wasd-controls="enabled: false"
           position="0 1.6 0"
         />
@@ -89,6 +93,14 @@ export default function Viewer360({ media }) {
           {muted ? "Unmute" : "Mute"}
         </button>
       )}
+
+      <button
+        type="button"
+        onClick={() => setReverseDrag((current) => !current)}
+        className="absolute bottom-4 right-4 z-10 rounded-full bg-black/60 px-4 py-2 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-black/80"
+      >
+        {reverseDrag ? "Normal Controls" : "Invert Controls"}
+      </button>
     </div>
   );
 }
