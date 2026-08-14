@@ -9,7 +9,9 @@
     "lint": "eslint",
     "postinstall": "prisma generate",
     "prisma:migrate": "dotenv -e .env.local -- prisma migrate dev",
-    "create-admin": "dotenv -e .env.local -- tsx scripts/create-admin.ts"
+    "create-admin": "dotenv -e .env.local -- tsx scripts/create-admin.ts",
+    "delete-admin": "dotenv -e .env.local -- tsx scripts/delete-admin.ts",
+    "ls-admin": "dotenv -e .env.local -- tsx scripts/ls-admin.ts"
   },
   "dependencies": {
     "@prisma/client": "6.19.3",

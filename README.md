@@ -49,13 +49,32 @@ A web platform for the Merrimack College Spatial Computing Lab that hosts immers
    ```bash
    npm run create-admin -- --email you@merrimack.edu --password <temporary-password>
    ```
-   (Admins should change their password after first login — see the admin user guide.)
+   (Admins should change their password after first login — see the admin user guide.) See [Managing Admin Accounts](#managing-admin-accounts) below for the full set of account scripts.
 
 6. **Start the development server**
    ```bash
    npm run dev
    ```
    Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## Managing Admin Accounts
+
+There is no self-service signup — admin accounts (email + password, via Better Auth) are managed entirely through these scripts. All three read `.env.local` for `DATABASE_URL`, same as the app itself.
+
+- **Create an admin**
+  ```bash
+  npm run create-admin -- --email you@merrimack.edu --password <temporary-password>
+  ```
+
+- **List admins** — shows every admin's email, name, creation date, and last sign-in
+  ```bash
+  npm run ls-admin
+  ```
+
+- **Delete an admin** — also removes that admin's sessions and password/credential record (cascading delete, see `prisma/schema.prisma`)
+  ```bash
+  npm run delete-admin -- --email you@merrimack.edu
+  ```
 
 ## Project Structure
 
@@ -77,6 +96,8 @@ prisma/
   schema.prisma   ← SQLite schema (media, admins, plus Better Auth's session/account tables)
 scripts/
   create-admin.ts ← creates an admin account (see Setup step 5)
+  ls-admin.ts     ← lists all admin accounts
+  delete-admin.ts ← deletes an admin account (see Managing Admin Accounts)
 data/
   lab.db          ← SQLite database file (not committed — see .gitignore)
 media/            ← 360° photo/video files, served statically (not committed)
