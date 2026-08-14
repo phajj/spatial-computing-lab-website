@@ -1,5 +1,4 @@
 // src/components/public/Footer.tsx
-import Link from "next/link";
 
 export default function Footer() {
   const year = new Date().getFullYear();
@@ -18,7 +17,7 @@ export default function Footer() {
 
         <div className="flex flex-col gap-1 text-sm sm:items-end">
           <a
-            href="mailto:spatialcomputinglab@merrimack.edu"
+            href="mailto:spatialcomputing@merrimack.edu"
             className="transition hover:text-[#FFE000]"
           >
             spatialcomputing@merrimack.edu

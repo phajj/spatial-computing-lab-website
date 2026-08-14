@@ -25,10 +25,6 @@ export default function Viewer360({ media }) {
   const [zoom, setZoom] = useState(1);
 
   useEffect(() => {
-    setZoom(1);
-  }, [media?.id]);
-
-  useEffect(() => {
     let cancelled = false;
     import("aframe").then(() => {
       if (!cancelled) setAframeReady(true);
