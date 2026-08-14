@@ -1,8 +1,9 @@
 // src/lib/auth.ts
-import { betterAuth } from "better-auth";
+import { APIError, betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { headers as nextHeaders } from "next/headers";
 import { prisma } from "./db";
+import { logAdminAction } from "./audit-log";
 
 // Server-side Better Auth instance. The Prisma "Admin" model stands in
 // for Better Auth's default "user" model (see prisma/schema.prisma),
@@ -27,11 +28,64 @@ export const auth = betterAuth({
     fields: {
       userId: "adminId",
     },
+    // Caches the session in a signed cookie so most admin page loads
+    // skip the database lookup. Trade-off: within this window, a
+    // session revoked server-side (lock-admin, delete-admin, a password
+    // change) keeps working until the cache expires, instead of being
+    // cut off immediately — kept short (well under Better Auth's 5-minute
+    // default) to bound that staleness.
+    cookieCache: {
+      enabled: true,
+      maxAge: 60,
+    },
   },
   account: {
     modelName: "account",
     fields: {
       userId: "adminId",
+    },
+  },
+  databaseHooks: {
+    session: {
+      create: {
+        // Blocks sign-in for accounts locked via the lock-admin script,
+        // with a message the login page displays as-is.
+        before: async (session) => {
+          const admin = await prisma.admin.findUnique({
+            where: { id: session.userId },
+            select: { disabled: true },
+          });
+          if (admin?.disabled) {
+            throw APIError.from("FORBIDDEN", {
+              message: "Account is locked. Please contact the account admin.",
+              code: "ACCOUNT_LOCKED",
+            });
+          }
+        },
+      },
+    },
+    account: {
+      update: {
+        // Fires only when Better Auth itself updates a credential account
+        // — in this app, that's exclusively the self-service /change-password
+        // flow (the change-pass/force-reset CLI scripts write to the
+        // database directly and don't go through Better Auth). A
+        // successful self-service change is what satisfies a pending
+        // force-reset, so clear the flag here.
+        after: async (account) => {
+          if (account.providerId !== "credential") return;
+          const admin = await prisma.admin.update({
+            where: { id: account.userId },
+            data: { mustChangePassword: false },
+            select: { email: true },
+          });
+          await logAdminAction(
+            "password_changed",
+            admin.email,
+            "self-service, via admin portal"
+          );
+        },
+      },
     },
   },
 });

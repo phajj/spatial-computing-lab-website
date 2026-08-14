@@ -7,6 +7,7 @@
 //   npm run create-admin -- --email you@merrimack.edu --password <temporary-password>
 import { hashPassword } from "better-auth/crypto";
 import { prisma } from "../src/lib/db";
+import { logAdminAction } from "../src/lib/audit-log";
 
 function parseArgs(argv: string[]) {
   const args: Record<string, string> = {};
@@ -73,6 +74,8 @@ async function main() {
       password: passwordHash,
     },
   });
+
+  await logAdminAction("created", admin.email, name ? `name: ${name}` : undefined);
 
   console.log(`Created admin account for ${admin.email} (id: ${admin.id}).`);
 }
