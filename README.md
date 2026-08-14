@@ -76,7 +76,7 @@ There is no self-service signup — admin accounts (email + password, via Better
   npm run change-pass -- --email you@merrimack.edu --password <new-password>
   ```
 
-- **Force-reset an admin's password** — unlike `change-pass`, generates and prints a random temporary password rather than taking one you choose; use this for a suspected-compromised account or to issue a fresh temp password without picking one yourself. Also signs them out everywhere and marks the account as needing a password change (`ls-admin` shows this as "RESET REQUIRED" — note the admin portal doesn't have a UI to act on that flag yet, since the dashboard isn't built)
+- **Force-reset an admin's password** — unlike `change-pass`, generates and prints a random temporary password rather than taking one you choose; use this for a suspected-compromised account or to issue a fresh temp password without picking one yourself. Also signs them out everywhere and marks the account as needing a password change (`ls-admin` shows this as "RESET REQUIRED" until the admin signs in and changes it themselves at `/admin/change-password`)
   ```bash
   npm run force-reset -- --email you@merrimack.edu
   ```
@@ -103,19 +103,33 @@ There is no self-service signup — admin accounts (email + password, via Better
   npm run admin-log -- --since 2026-08-01 --until 2026-08-14
   ```
 
+## Admin Portal
+
+Reached at `/admin` after signing in at `/admin/login`. Everything under `/admin` except `/admin/login` requires a session — enforced server-side in `src/app/admin/(protected)/layout.tsx`, which redirects to `/admin/login` if there isn't one.
+
+- **Dashboard** (`/admin`) — total/published/draft counts and a table of all media. Read-only for now; uploading and editing media (the media manager) hasn't been built yet.
+- **Change Password** (`/admin/change-password`) — lets a signed-in admin change their own password: current password, then the new one twice. Requires the current password to match (same check Better Auth uses at sign-in) and revokes every other active session on success, while keeping the current one signed in. If the account had a pending forced reset (see `force-reset` above), this clears it.
+
+> **Not in scope (this step):** the media manager (drag-and-drop upload, metadata editing) is the next piece of the admin portal.
+
 ## Project Structure
 
 ```
 src/
   app/
-    (public)/     ← public-facing pages (home, gallery, viewer, about)
-    admin/        ← protected admin portal (/admin)
-    api/          ← API routes
+    (public)/         ← public-facing pages (home, gallery, viewer, about)
+    admin/
+      login/          ← /admin/login (public, no session required)
+      (protected)/    ← everything else under /admin (session required — see Admin Portal)
+        layout.tsx    ← redirects to /admin/login if there's no session
+        page.tsx      ← dashboard (/admin)
+        change-password/ ← self-service password change
+    api/              ← API routes
   components/
-    ui/           ← reusable UI primitives
-    admin/        ← admin-only components
-    public/       ← public-site components
-    Viewer360.jsx ← A-Frame 360° viewer (all A-Frame logic lives here only)
+    ui/               ← reusable UI primitives
+    admin/            ← admin-only components (e.g. AdminNav.tsx)
+    public/           ← public-site components
+    Viewer360.jsx     ← A-Frame 360° viewer (all A-Frame logic lives here only)
   lib/
     db.ts         ← Prisma client initialization
     auth.ts       ← Better Auth config and session helpers

@@ -3,6 +3,7 @@ import { APIError, betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { headers as nextHeaders } from "next/headers";
 import { prisma } from "./db";
+import { logAdminAction } from "./audit-log";
 
 // Server-side Better Auth instance. The Prisma "Admin" model stands in
 // for Better Auth's default "user" model (see prisma/schema.prisma),
@@ -50,6 +51,29 @@ export const auth = betterAuth({
               code: "ACCOUNT_LOCKED",
             });
           }
+        },
+      },
+    },
+    account: {
+      update: {
+        // Fires only when Better Auth itself updates a credential account
+        // — in this app, that's exclusively the self-service /change-password
+        // flow (the change-pass/force-reset CLI scripts write to the
+        // database directly and don't go through Better Auth). A
+        // successful self-service change is what satisfies a pending
+        // force-reset, so clear the flag here.
+        after: async (account) => {
+          if (account.providerId !== "credential") return;
+          const admin = await prisma.admin.update({
+            where: { id: account.userId },
+            data: { mustChangePassword: false },
+            select: { email: true },
+          });
+          await logAdminAction(
+            "password_changed",
+            admin.email,
+            "self-service, via admin portal"
+          );
         },
       },
     },
