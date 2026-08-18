@@ -24,6 +24,9 @@
 .DS_Store
 *.pem
 
+# QA / local issue tracking (not filed as GitHub issues)
+ISSUES.md
+
 # debug
 npm-debug.log*
 yarn-debug.log*
