@@ -56,26 +56,30 @@ async function main() {
 
   const passwordHash = await hashPassword(password);
 
-  const admin = await prisma.admin.create({
-    data: {
-      email: normalizedEmail,
-      name: name ?? null,
-      emailVerified: true,
-    },
-  });
+  const admin = await prisma.$transaction(async (tx) => {
+    const created = await tx.admin.create({
+      data: {
+        email: normalizedEmail,
+        name: name ?? null,
+        emailVerified: true,
+      },
+    });
 
-  // Better Auth's credential (email+password) accounts key `accountId`
-  // off the admin's own id, matching what its sign-up flow does.
-  await prisma.account.create({
-    data: {
-      adminId: admin.id,
-      accountId: admin.id,
-      providerId: "credential",
-      password: passwordHash,
-    },
-  });
+    // Better Auth's credential (email+password) accounts key `accountId`
+    // off the admin's own id, matching what its sign-up flow does.
+    await tx.account.create({
+      data: {
+        adminId: created.id,
+        accountId: created.id,
+        providerId: "credential",
+        password: passwordHash,
+      },
+    });
 
-  await logAdminAction("created", admin.email, name ? `name: ${name}` : undefined);
+    await logAdminAction(tx, "created", created.email, name ? `name: ${name}` : undefined);
+
+    return created;
+  });
 
   console.log(`Created admin account for ${admin.email} (id: ${admin.id}).`);
 }
