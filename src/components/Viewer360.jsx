@@ -12,15 +12,10 @@ const ZOOM_STEP = 0.1;
 // A-Frame touches `window`/`navigator` as soon as it's imported, so it can only
 // be loaded in the browser. Importing it inside an effect (instead of at the
 // top of the file) keeps this component safe to render on the server.
-export default function Viewer360({ media }) {
+export default function Viewer360({ media, muted, setMuted, reverseDrag, setReverseDrag }) {
   const [aframeReady, setAframeReady] = useState(false);
   const videoRef = useRef(null);
   const containerRef = useRef(null);
-  const [muted, setMuted] = useState(true);
-  // Default drag direction is inverted from A-Frame's stock look-controls
-  // (dragging left turns the view right, like turning your head) with a
-  // toggle to switch back to the "grab and drag the scene" feel.
-  const [reverseDrag, setReverseDrag] = useState(true);
   const [isImmersive, setIsImmersive] = useState(false);
   const [zoom, setZoom] = useState(1);
 
