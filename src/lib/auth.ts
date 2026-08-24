@@ -22,6 +22,15 @@ export const auth = betterAuth({
   },
   user: {
     modelName: "admin",
+    additionalFields: {
+      mustChangePassword: {
+        type: "boolean",
+        defaultValue: false,
+        // Only ever set server-side (by the force-reset script or the
+        // change-password success hook below) — never client-writable.
+        input: false,
+      },
+    },
   },
   session: {
     modelName: "session",
