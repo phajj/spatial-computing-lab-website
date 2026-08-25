@@ -71,8 +71,9 @@ export default function ViewerClient({
     }
 
     if (hashParams.collectionSlug) {
+      const normalizedSlug = slugify(hashParams.collectionSlug);
       const byCollection = media.find(
-        (item) => item.collection && slugify(item.collection) === hashParams.collectionSlug
+        (item) => item.collection && slugify(item.collection) === normalizedSlug
       );
       if (byCollection) return byCollection;
     }
