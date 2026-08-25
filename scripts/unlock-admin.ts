@@ -48,12 +48,14 @@ async function main() {
     process.exit(1);
   }
 
-  await prisma.admin.update({
-    where: { id: admin.id },
-    data: { disabled: false },
-  });
+  await prisma.$transaction(async (tx) => {
+    await tx.admin.update({
+      where: { id: admin.id },
+      data: { disabled: false },
+    });
 
-  await logAdminAction("unlocked", normalizedEmail);
+    await logAdminAction(tx, "unlocked", normalizedEmail);
+  });
 
   console.log(`Unlocked admin account for ${normalizedEmail}.`);
 }

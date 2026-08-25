@@ -50,16 +50,20 @@ async function main() {
     process.exit(1);
   }
 
-  await prisma.admin.update({
-    where: { id: admin.id },
-    data: { disabled: true },
-  });
+  const { count } = await prisma.$transaction(async (tx) => {
+    await tx.admin.update({
+      where: { id: admin.id },
+      data: { disabled: true },
+    });
 
-  const { count } = await prisma.session.deleteMany({
-    where: { adminId: admin.id },
-  });
+    const result = await tx.session.deleteMany({
+      where: { adminId: admin.id },
+    });
 
-  await logAdminAction("locked", normalizedEmail, `revoked ${count} session(s)`);
+    await logAdminAction(tx, "locked", normalizedEmail, `revoked ${result.count} session(s)`);
+
+    return result;
+  });
 
   console.log(
     `Locked admin account for ${normalizedEmail}. Signed out ${count} active session(s).`

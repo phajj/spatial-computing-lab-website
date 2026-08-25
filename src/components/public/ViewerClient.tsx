@@ -43,6 +43,11 @@ export default function ViewerClient({
     collectionSlug: string | null;
   }>({ viewerId: null, collectionSlug: null });
 
+  // Lifted out of Viewer360 so a visitor's mute/drag preferences survive
+  // Prev/Next navigation, which remounts Viewer360 via its `key={activeItem.id}`.
+  const [muted, setMuted] = useState(true);
+  const [reverseDrag, setReverseDrag] = useState(true);
+
   // Hash changes (clicking a thumbnail, using browser back/forward, or landing
   // on a shared link) are the source of truth for which item is open. The
   // hash itself is never available during server rendering, so the very
@@ -66,8 +71,9 @@ export default function ViewerClient({
     }
 
     if (hashParams.collectionSlug) {
+      const normalizedSlug = slugify(hashParams.collectionSlug);
       const byCollection = media.find(
-        (item) => item.collection && slugify(item.collection) === hashParams.collectionSlug
+        (item) => item.collection && slugify(item.collection) === normalizedSlug
       );
       if (byCollection) return byCollection;
     }
@@ -123,7 +129,14 @@ export default function ViewerClient({
   return (
     <div>
       <div className="relative h-[65vh] min-h-[420px] w-full sm:h-[80vh]">
-        <Viewer360 key={activeItem.id} media={activeItem} />
+        <Viewer360
+          key={activeItem.id}
+          media={activeItem}
+          muted={muted}
+          setMuted={setMuted}
+          reverseDrag={reverseDrag}
+          setReverseDrag={setReverseDrag}
+        />
 
         {(prevItem || nextItem) && (
           <>

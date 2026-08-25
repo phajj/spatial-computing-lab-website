@@ -22,6 +22,15 @@ export const auth = betterAuth({
   },
   user: {
     modelName: "admin",
+    additionalFields: {
+      mustChangePassword: {
+        type: "boolean",
+        defaultValue: false,
+        // Only ever set server-side (by the force-reset script or the
+        // change-password success hook below) — never client-writable.
+        input: false,
+      },
+    },
   },
   session: {
     modelName: "session",
@@ -74,16 +83,19 @@ export const auth = betterAuth({
         // force-reset, so clear the flag here.
         after: async (account) => {
           if (account.providerId !== "credential") return;
-          const admin = await prisma.admin.update({
-            where: { id: account.userId },
-            data: { mustChangePassword: false },
-            select: { email: true },
+          await prisma.$transaction(async (tx) => {
+            const admin = await tx.admin.update({
+              where: { id: account.userId },
+              data: { mustChangePassword: false },
+              select: { email: true },
+            });
+            await logAdminAction(
+              tx,
+              "password_changed",
+              admin.email,
+              "self-service, via admin portal"
+            );
           });
-          await logAdminAction(
-            "password_changed",
-            admin.email,
-            "self-service, via admin portal"
-          );
         },
       },
     },

@@ -83,27 +83,32 @@ async function main() {
   const tempPassword = generateTempPassword();
   const passwordHash = await hashPassword(tempPassword);
 
-  await prisma.account.update({
-    where: { id: account.id },
-    data: { password: passwordHash },
-  });
+  const { count } = await prisma.$transaction(async (tx) => {
+    await tx.account.update({
+      where: { id: account.id },
+      data: { password: passwordHash },
+    });
 
-  await prisma.admin.update({
-    where: { id: admin.id },
-    data: { mustChangePassword: true },
-  });
+    await tx.admin.update({
+      where: { id: admin.id },
+      data: { mustChangePassword: true },
+    });
 
-  const { count } = await prisma.session.deleteMany({
-    where: { adminId: admin.id },
-  });
+    const result = await tx.session.deleteMany({
+      where: { adminId: admin.id },
+    });
 
-  // Deliberately never logs the temp password itself — the audit log
-  // is a readable history, not a place to keep credentials.
-  await logAdminAction(
-    "force_reset",
-    normalizedEmail,
-    `revoked ${count} session(s)`
-  );
+    // Deliberately never logs the temp password itself — the audit log
+    // is a readable history, not a place to keep credentials.
+    await logAdminAction(
+      tx,
+      "force_reset",
+      normalizedEmail,
+      `revoked ${result.count} session(s)`
+    );
+
+    return result;
+  });
 
   console.log(
     `Force-reset password for ${normalizedEmail}. Signed out ${count} active session(s).`

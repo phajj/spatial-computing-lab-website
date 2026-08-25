@@ -44,9 +44,10 @@ async function main() {
     process.exit(1);
   }
 
-  await prisma.admin.delete({ where: { id: existing.id } });
-
-  await logAdminAction("deleted", normalizedEmail);
+  await prisma.$transaction(async (tx) => {
+    await tx.admin.delete({ where: { id: existing.id } });
+    await logAdminAction(tx, "deleted", normalizedEmail);
+  });
 
   console.log(`Deleted admin account for ${normalizedEmail}.`);
 }

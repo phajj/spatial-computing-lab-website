@@ -62,24 +62,29 @@ async function main() {
 
   const passwordHash = await hashPassword(password);
 
-  // Updating this row bumps its updatedAt (Prisma's @updatedAt), which
-  // ls-admin reads as the "password changed" timestamp.
-  await prisma.account.update({
-    where: { id: account.id },
-    data: { password: passwordHash },
-  });
+  const { count } = await prisma.$transaction(async (tx) => {
+    // Updating this row bumps its updatedAt (Prisma's @updatedAt), which
+    // ls-admin reads as the "password changed" timestamp.
+    await tx.account.update({
+      where: { id: account.id },
+      data: { password: passwordHash },
+    });
 
-  // Signing out everywhere on a password change is standard practice —
-  // if the old password leaked, a stale session would otherwise still work.
-  const { count } = await prisma.session.deleteMany({
-    where: { adminId: admin.id },
-  });
+    // Signing out everywhere on a password change is standard practice —
+    // if the old password leaked, a stale session would otherwise still work.
+    const result = await tx.session.deleteMany({
+      where: { adminId: admin.id },
+    });
 
-  await logAdminAction(
-    "password_changed",
-    normalizedEmail,
-    `revoked ${count} session(s)`
-  );
+    await logAdminAction(
+      tx,
+      "password_changed",
+      normalizedEmail,
+      `revoked ${result.count} session(s)`
+    );
+
+    return result;
+  });
 
   console.log(
     `Changed password for ${normalizedEmail}. Signed out ${count} active session(s).`
