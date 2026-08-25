@@ -26,6 +26,11 @@ model Media {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
+  // Every public page and the admin dashboard filters on these columns.
+  @@index([published])
+  @@index([category])
+  @@index([collection])
+  @@index([featured])
   @@map("media")
 }
 

@@ -8,12 +8,18 @@ function formatDate(date: Date) {
   return `${pad(date.getMonth() + 1)}-${pad(date.getDate())}-${date.getFullYear()}`;
 }
 
+// This dashboard is a read-only overview, not the media manager — capping
+// the table (rather than paginating) keeps it simple until the manager
+// (with its own paginated list) lands.
+const DASHBOARD_ROW_LIMIT = 200;
+
 export default async function AdminDashboardPage() {
   const [total, published, media] = await Promise.all([
     prisma.media.count(),
     prisma.media.count({ where: { published: true } }),
     prisma.media.findMany({
       orderBy: { createdAt: "desc" },
+      take: DASHBOARD_ROW_LIMIT,
       select: {
         id: true,
         title: true,
@@ -34,6 +40,8 @@ export default async function AdminDashboardPage() {
       </h1>
       <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
         Overview of published and draft 360° media.
+        {total > DASHBOARD_ROW_LIMIT &&
+          ` Showing the ${DASHBOARD_ROW_LIMIT} most recently added, out of ${total} total.`}
       </p>
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
