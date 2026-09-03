@@ -146,3 +146,4 @@ When the developer references a GitHub issue by number or title, treat the issue
 - Do not use the Pages Router (`pages/` directory) under any circumstances
 - Do not use `any` types if TypeScript is introduced later
 - Do not generate placeholder or lorem ipsum content for the public site — use realistic Merrimack College Spatial Computing Lab context instead
+- Do not add a "Co-Authored-By: Claude" trailer (or any similar AI-attribution line) to git commit messages
