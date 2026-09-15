@@ -15,6 +15,10 @@ const CATEGORY_OPTIONS: { value: MediaCategory; label: string }[] = [
   { value: "campus_events", label: "Campus Events" },
 ];
 
+// Sentinel <option> value that switches the album dropdown into
+// "type a new name" mode. Not a real collection name.
+const NEW_ALBUM = "__new__";
+
 export type UploadedMedia = {
   id: string;
   title: string;
@@ -25,8 +29,10 @@ export type UploadedMedia = {
 };
 
 export default function MediaUploadForm({
+  collections,
   onUploaded,
 }: {
+  collections: string[];
   onUploaded?: (media: UploadedMedia) => void;
 }) {
   const [file, setFile] = useState<File | null>(null);
@@ -34,7 +40,11 @@ export default function MediaUploadForm({
   const [title, setTitle] = useState("");
   const [type, setType] = useState<MediaType>("photo");
   const [category, setCategory] = useState<MediaCategory | "">("");
-  const [collection, setCollection] = useState("");
+  // `collectionChoice` holds the <select> value: "" (none), an existing
+  // album name, or NEW_ALBUM. `newCollection` is the free-text name typed
+  // when NEW_ALBUM is chosen.
+  const [collectionChoice, setCollectionChoice] = useState("");
+  const [newCollection, setNewCollection] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
   const [date, setDate] = useState("");
@@ -68,7 +78,8 @@ export default function MediaUploadForm({
     setTitle("");
     setType("photo");
     setCategory("");
-    setCollection("");
+    setCollectionChoice("");
+    setNewCollection("");
     setDescription("");
     setLocation("");
     setDate("");
@@ -99,12 +110,19 @@ export default function MediaUploadForm({
       }
     }
 
+    if (collectionChoice === NEW_ALBUM && !newCollection.trim()) {
+      setError("Enter a name for the new album, or choose an existing one.");
+      return;
+    }
+    const collectionValue =
+      collectionChoice === NEW_ALBUM ? newCollection.trim() : collectionChoice;
+
     const formData = new FormData();
     formData.set("file", file);
     formData.set("title", title.trim());
     formData.set("type", type);
     formData.set("category", category);
-    formData.set("collection", collection.trim());
+    formData.set("collection", collectionValue);
     formData.set("description", description.trim());
     formData.set("location", location.trim());
     formData.set("date", date);
@@ -243,15 +261,31 @@ export default function MediaUploadForm({
 
         <div>
           <label htmlFor="collection" className={labelClass}>
-            Collection
+            Album
           </label>
-          <input
+          <select
             id="collection"
-            placeholder="Greece Spring 2026"
-            value={collection}
-            onChange={(e) => setCollection(e.target.value)}
+            value={collectionChoice}
+            onChange={(e) => setCollectionChoice(e.target.value)}
             className={inputClass}
-          />
+          >
+            <option value="">— None —</option>
+            {collections.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+            <option value={NEW_ALBUM}>+ New album…</option>
+          </select>
+          {collectionChoice === NEW_ALBUM && (
+            <input
+              aria-label="New album name"
+              placeholder="Greece Spring 2026"
+              value={newCollection}
+              onChange={(e) => setNewCollection(e.target.value)}
+              className={`${inputClass} mt-2`}
+            />
+          )}
         </div>
 
         <div>

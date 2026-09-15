@@ -5,19 +5,34 @@ import MediaManagerClient from "@/components/admin/MediaManagerClient";
 const RECENT_LIMIT = 10;
 
 export default async function MediaManagerPage() {
-  const recent = await prisma.media.findMany({
-    orderBy: { createdAt: "desc" },
-    take: RECENT_LIMIT,
-    select: {
-      id: true,
-      title: true,
-      type: true,
-      category: true,
-      collection: true,
-      published: true,
-      createdAt: true,
-    },
-  });
+  const [recent, collectionRows] = await Promise.all([
+    prisma.media.findMany({
+      orderBy: { createdAt: "desc" },
+      take: RECENT_LIMIT,
+      select: {
+        id: true,
+        title: true,
+        type: true,
+        category: true,
+        collection: true,
+        published: true,
+        createdAt: true,
+      },
+    }),
+    // Distinct album/collection names already in use, to populate the
+    // upload form's dropdown so staff can reuse an existing album instead
+    // of retyping (and risking a typo that splits one album into two).
+    prisma.media.findMany({
+      where: { collection: { not: null } },
+      distinct: ["collection"],
+      select: { collection: true },
+      orderBy: { collection: "asc" },
+    }),
+  ]);
+
+  const collections = collectionRows
+    .map((row) => row.collection)
+    .filter((name): name is string => Boolean(name));
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
@@ -36,6 +51,7 @@ export default async function MediaManagerPage() {
             ...item,
             createdAt: item.createdAt.toISOString(),
           }))}
+          initialCollections={collections}
         />
       </div>
     </div>

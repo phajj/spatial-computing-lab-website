@@ -26,20 +26,31 @@ function formatDate(iso: string) {
 
 export default function MediaManagerClient({
   initialMedia,
+  initialCollections,
 }: {
   initialMedia: MediaRow[];
+  initialCollections: string[];
 }) {
   const [media, setMedia] = useState(initialMedia);
+  const [collections, setCollections] = useState(initialCollections);
 
   function handleUploaded(uploaded: UploadedMedia) {
     setMedia((current) =>
       [{ ...uploaded, published: false }, ...current].slice(0, RECENT_LIMIT)
     );
+    // If this upload created a brand-new album, add it to the dropdown so
+    // the next upload in this session can reuse it without a page reload.
+    if (uploaded.collection && !collections.includes(uploaded.collection)) {
+      const name = uploaded.collection;
+      setCollections((current) =>
+        [...current, name].sort((a, b) => a.localeCompare(b))
+      );
+    }
   }
 
   return (
     <div className="space-y-8">
-      <MediaUploadForm onUploaded={handleUploaded} />
+      <MediaUploadForm collections={collections} onUploaded={handleUploaded} />
 
       <div>
         <h2 className="font-serif text-lg text-[#00356A] dark:text-white">
