@@ -6,7 +6,7 @@ This project is building a web platform for the Merrimack College Spatial Comput
 - Next.js (React framework) for both the public site and admin portal
 - SQLite (via Prisma) for the database — chosen because the app, database, and media all live on one server, so there's no benefit to a networked database
 - Better Auth for admin authentication — email + password, session-based, no OAuth provider needed for a handful of known lab staff
-- 360° media stored on local disk on the Merrimack CS server, delivered via SFTP (legacy/bulk) or admin portal upload (new)
+- 360° media stored on local disk on the Merrimack CS server, added only through admin portal upload
 - A-Frame (WebXR) for the in-browser 360° photo and video viewer
 - Self-hosted on the Merrimack College CS server, running as a `systemd` service
 
@@ -59,7 +59,7 @@ This project is building a web platform for the Merrimack College Spatial Comput
 > **Not in scope (possible future addition):** `articles` and `events` tables are not being created at this time. If Articles and Events pages are added in the future, the likely schema would be: `articles` (id, title, slug, body, author, published_at, cover_image) and `events` (id, title, slug, date, location, description, media_id FK, published).
 
 **Media origin**
-360° content comes from Merrimack College study abroad trips and campus events. Legacy media arrives via SFTP directly into the `MEDIA_DIR` directory on the server; a one-time script registers matching metadata rows for it. New media is uploaded directly through the admin portal, which writes the file to disk and creates its metadata row in the same action. Supported formats: equirectangular JPEG/PNG for photos, MP4/WebM for video.
+360° content comes from Merrimack College study abroad trips and campus events. All media is uploaded through the admin portal, which writes the file to `MEDIA_DIR` and creates its metadata row in the same action. There is no SFTP or bulk-import path — the site is deployed with an empty `MEDIA_DIR` and the initial library is uploaded through the portal after launch. Supported formats: equirectangular JPEG/PNG for photos, MP4/WebM for video.
 
 **Conventions**
 - Collection naming: `Destination Season Year` (e.g. "Greece Spring 2026")
