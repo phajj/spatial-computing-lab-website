@@ -15,7 +15,8 @@ This project is building a web platform for the Merrimack College Spatial Comput
 - The app listens directly on port `49168`, which is public-facing. The site is reachable at `http://cs.merrimack.edu:49168`. A cleaner URL (e.g. `cs.merrimack.edu/spatial-computing`) may be set up later once the site is live, but don't build anything that assumes a specific public path — keep all internal links relative/root-based.
 - SQLite has no port at all — it's a local file, not a network service.
 - Media is served through the same app/port as the rest of the site — it does not get its own separate port.
-- The app is managed by a `systemd` unit (`spatial-lab.service`).
+- The app is managed by a `systemd` unit (`spatial-lab.service`), which runs `npm start` → `tsx server.ts`, a small custom server in front of Next.js (not `next start`).
+- **The admin area is loopback-only.** `server.ts` (via `src/lib/admin-guard.ts`) returns the normal 404 page for `/admin/*`, `/api/admin/*` and `/api/auth/*` unless the TCP peer (`req.socket.remoteAddress`) is loopback. Admins reach it through an SSH tunnel (`ssh -L 8080:localhost:49168 …`, then `http://localhost:8080/admin`; see `ADMIN.md`), so `BETTER_AUTH_URL` on the server is `http://localhost:8080`. Never trust `X-Forwarded-For` or similar headers, since there's no proxy. Any new admin route must live under one of those prefixes.
 
 **Brand**
 - Primary blue: `#00356A`
@@ -45,8 +46,8 @@ This project is building a web platform for the Merrimack College Spatial Comput
 - ✅ Dashboard (`/admin`) — read-only overview: total/published/draft counts and a table of all media
 - ✅ Self-service password change (`/admin/change-password`) — current password, then new password twice; revokes every other active session on success; clears any pending forced reset
 - ✅ Account management — no self-service signup; accounts and their lifecycle are managed entirely via CLI scripts in `scripts/` (`create-admin`, `ls-admin`, `change-pass`, `force-reset`, `lock-admin`, `unlock-admin`, `delete-admin`), all logged to an admin audit log (`admin-log`) — see README's "Managing Admin Accounts" section
-- ⬜ **To do:** Media manager — drag-and-drop upload, saves the file to disk under `MEDIA_DIR` and writes a matching metadata row (title, collection, category, description, location, featured flag, hotspots). This is the next piece of the admin portal to build.
-- Once built, all content changes should reflect on the public site immediately upon publish
+- ✅ Media manager — drag-and-drop upload, saves the file to disk under `MEDIA_DIR` and writes a matching metadata row (title, collection, category, description, location, featured flag, hotspots), plus metadata editing and publish/unpublish
+- All content changes reflect on the public site immediately upon publish
 
 > **Not in scope (possible future addition):** An article editor (TipTap rich text, draft/publish workflow) and event page creator are not being built at this time and may be added in a future phase.
 
@@ -84,9 +85,10 @@ The public-facing site must be completed and presentable before any admin portal
 6. **Admin portal** *(steps 2–5 are complete, so this is underway)*
    - ✅ Dashboard (read-only) and self-service password change
    - ✅ Admin account management (CLI scripts) and audit log
-   - ⬜ **To do next:** Media manager — drag-and-drop upload, writes the file to `MEDIA_DIR` and creates its metadata row (title, collection, category, description, location, featured flag, hotspots)
-   - ⬜ **To do after that:** metadata editing/publish workflow for existing media, once upload exists
-  - ⬜ **To do after that:** Write Admin Portal Knowledge Base article / usermanual
+   - ✅ Media manager — drag-and-drop upload, writes the file to `MEDIA_DIR` and creates its metadata row (title, collection, category, description, location, featured flag, hotspots)
+   - ✅ Metadata editing/publish workflow for existing media
+   - ✅ SSH-tunnel admin lockdown — admin routes answer only to loopback requests (custom `server.ts` guard), hardened Better Auth cookies/rate limit/origin checks, `ADMIN.md` tunnel guide
+   - ⬜ **To do next:** Write Admin Portal Knowledge Base article / usermanual
 ---
 
 **Instructions for Claude**
@@ -133,6 +135,10 @@ src/
     auth-client.ts    ← Better Auth client hooks for client components
     audit-log.ts      ← writes entries to the admin audit log
     types.ts          ← shared TS types (e.g. MediaItem)
+    loopback.ts       ← isLoopback / isAdminPath helpers
+    admin-guard.ts    ← loopback-only guard for admin routes
+server.ts             ← custom server running Next.js behind the admin guard
+ADMIN.md              ← SSH-tunnel sign-in guide for lab staff
 prisma/
   schema.prisma       ← SQLite schema (media, admins, admin_audit_log, plus Better Auth's tables)
 scripts/              ← admin account management CLI scripts (see README)

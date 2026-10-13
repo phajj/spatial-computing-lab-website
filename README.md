@@ -37,7 +37,7 @@ A web platform for the Merrimack College Spatial Computing Lab that hosts immers
    - `DATABASE_URL` — path to the SQLite file, e.g. `file:../data/lab.db` (Prisma resolves this relative to `prisma/schema.prisma`, not the project root, hence the `../`)
    - `MEDIA_DIR` — absolute path to the directory where 360° media lives on disk, e.g. `/srv/spatial-lab/media`
    - `BETTER_AUTH_SECRET` — a long random string used to sign session cookies
-   - `BETTER_AUTH_URL` — the site's base URL (e.g. `http://localhost:3000` in dev, the production domain in prod)
+   - `BETTER_AUTH_URL` — the URL admins sign in from: `http://localhost:3000` in dev, and `http://localhost:8080` on the server (the admin SSH tunnel address, see [ADMIN.md](./ADMIN.md)). Not the public `cs.merrimack.edu:49168` address, since the admin area doesn't answer there
 
 4. **Set up the database**
    ```bash
@@ -55,7 +55,12 @@ A web platform for the Merrimack College Spatial Computing Lab that hosts immers
    ```bash
    npm run dev
    ```
-   Open [http://localhost:3000](http://localhost:3000) in your browser.
+   Open [http://localhost:3000](http://localhost:3000) in your browser. This runs the same custom server (`server.ts`) as production, so the admin area's loopback-only guard is active locally too. That's harmless here, because your own browser is loopback.
+
+7. **Run the tests**
+   ```bash
+   npm test
+   ```
 
 ## Managing Admin Accounts
 
@@ -105,6 +110,8 @@ There is no self-service signup — admin accounts (email + password, via Better
 
 ## Admin Portal
 
+**The admin area only answers to requests from the server itself.** Admins reach it through an SSH tunnel at `http://localhost:8080/admin`; step-by-step instructions for lab staff are in **[ADMIN.md](./ADMIN.md)**. From anywhere else, every admin route (`/admin/*`, `/api/admin/*`, and Better Auth's `/api/auth/*`) returns the site's normal 404 page. This is enforced in `server.ts` / `src/lib/admin-guard.ts`, which check the real TCP peer address before Next.js sees the request. The guard ignores headers like `X-Forwarded-For`, because there's no proxy in front of the app and any client can fake them.
+
 Reached at `/admin` after signing in at `/admin/login`. Everything under `/admin` except `/admin/login` requires a session, enforced server-side in `src/app/admin/(protected)/layout.tsx`, which redirects to `/admin/login` if there isn't one. Session checks are cached in a signed cookie for 60 seconds (`session.cookieCache` in `src/lib/auth.ts`) so most admin page loads skip the database.
 
 - **Dashboard** (`/admin`) — total/published/draft counts and a table of all media. Click a title to open its edit page.
@@ -116,7 +123,7 @@ Reached at `/admin` after signing in at `/admin/login`. Everything under `/admin
 
 This is the day-to-day process for lab staff adding 360° media to the site. A short version of these steps also appears in the portal itself, under **How publishing works** on the Media Manager and Edit Media pages.
 
-1. **Sign in** at `/admin/login` with the email and password you were given. If it's your first sign-in or your password was reset, go to **Change Password** and set your own.
+1. **Sign in** — open the SSH tunnel (see [ADMIN.md](./ADMIN.md)), then go to `http://localhost:8080/admin/login` and sign in with the email and password you were given. If it's your first sign-in or your password was reset, go to **Change Password** and set your own.
 2. **Upload** — open **Media Manager**, then drag a 360° file into the upload box (or click it to browse). Photos must be equirectangular JPEG or PNG; videos must be MP4 or WebM. Fill in:
    - **Title** (required) — defaults to the file name.
    - **Type** — photo or video; set automatically from the file extension.
@@ -158,6 +165,10 @@ src/
     db.ts         ← Prisma client initialization
     auth.ts       ← Better Auth config and session helpers
     audit-log.ts  ← writes entries to the admin audit log (used by the scripts below)
+    loopback.ts   ← isLoopback / isAdminPath helpers for the admin guard
+    admin-guard.ts ← blocks admin routes for non-loopback requests (used by server.ts)
+server.ts         ← custom server: runs Next.js behind the loopback-only admin guard
+ADMIN.md          ← SSH-tunnel sign-in guide for lab staff
 prisma/
   schema.prisma   ← SQLite schema (media, admins, plus Better Auth's session/account tables)
 scripts/
@@ -183,6 +194,14 @@ media/            ← 360° photo/video files, served statically (not committed)
 - Media files are served through `/media/...` (`src/app/media/[...path]/route.ts`). Only files belonging to a **published** media row are served publicly; drafts, and any file in `MEDIA_DIR` without a media row, return 404 unless an admin is signed in.
 - Back up `data/lab.db` regularly (a nightly cron job copying it off-box is enough) — self-hosting means backups are our responsibility, not a platform's.
 - Deployment runs directly on the Merrimack CS server as a `systemd` service at `/projects/spatial-lab`. The app listens directly on port `49168` so the site is reachable at `http://cs.merrimack.edu:49168`. A cleaner URL path may be added later; don't hardcode assumptions about one.
+- The app starts through the custom server `server.ts` (`npm start` → `tsx server.ts`), not `next start`, so it can apply the loopback-only admin guard. Deploy with `npm install && npx next build`, then restart the service. The `systemd` unit should run:
+  ```ini
+  WorkingDirectory=/projects/spatial-lab
+  Environment=PORT=49168
+  Environment=NODE_ENV=production
+  ExecStart=/usr/bin/npm start
+  ```
+  (Use the output of `which npm` on the server if npm lives somewhere else.) On the server, set `BETTER_AUTH_URL="http://localhost:8080"` in `.env.local`, since admins sign in through the SSH tunnel.
 
 ## Technical Context
 

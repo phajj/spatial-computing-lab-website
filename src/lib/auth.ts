@@ -4,6 +4,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { headers as nextHeaders } from "next/headers";
 import { prisma } from "./db";
 import { logAdminAction } from "./audit-log";
+import { isLoopbackOrigin } from "./loopback";
 
 // Server-side Better Auth instance. The Prisma "Admin" model stands in
 // for Better Auth's default "user" model (see prisma/schema.prisma),
@@ -14,11 +15,45 @@ export const auth = betterAuth({
   }),
   baseURL: process.env.BETTER_AUTH_URL,
   secret: process.env.BETTER_AUTH_SECRET,
+  // Admins reach the portal through an SSH tunnel on a local port of their
+  // choosing (http://localhost:8080, :9000, ...), so accept any loopback
+  // origin. Safe because server.ts only lets loopback requests reach
+  // /api/auth at all.
+  trustedOrigins: (request) => {
+    const origin = request?.headers.get("origin");
+    return origin && isLoopbackOrigin(origin) ? [origin] : [];
+  },
   emailAndPassword: {
     enabled: true,
     // No public signup — admin accounts are created only via the
     // `create-admin` script (see scripts/create-admin.ts).
     disableSignUp: true,
+  },
+  // On by default only in production; forced on so it's never silently
+  // off. Keyed by IP, and every tunnelled request arrives from 127.0.0.1,
+  // so all admins share these limits.
+  rateLimit: {
+    enabled: true,
+    customRules: {
+      "/sign-in/email": { window: 60, max: 5 },
+      "/change-password": { window: 60, max: 5 },
+    },
+  },
+  advanced: {
+    // server.ts overwrites this header with the real TCP peer address, so
+    // the rate limiter can't be dodged by sending a fake one.
+    ipAddress: {
+      ipAddressHeaders: ["x-forwarded-for"],
+    },
+    // `secure` stays off on purpose: admins use plain http://localhost
+    // through the tunnel (SSH does the encrypting), and some browsers won't
+    // send Secure cookies over http, even to localhost.
+    useSecureCookies: false,
+    defaultCookieAttributes: {
+      httpOnly: true,
+      sameSite: "strict",
+      path: "/",
+    },
   },
   user: {
     modelName: "admin",

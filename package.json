@@ -3,10 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "tsx server.ts --dev",
     "build": "next build",
-    "start": "next start",
+    "start": "tsx server.ts",
     "lint": "eslint",
+    "test": "tsx --test \"src/**/*.test.ts\"",
     "postinstall": "prisma generate",
     "prisma:migrate": "dotenv -e .env.local -- prisma migrate dev",
     "create-admin": "dotenv -e .env.local -- tsx scripts/create-admin.ts",
@@ -24,7 +25,8 @@
     "better-auth": "^1.6.27",
     "next": "16.2.7",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "tsx": "^4.23.12"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -36,7 +38,6 @@
     "eslint-config-next": "16.2.7",
     "prisma": "6.19.3",
     "tailwindcss": "^4",
-    "tsx": "^4.23.12",
     "typescript": "^5"
   },
   "allowScripts": {
