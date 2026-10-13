@@ -6,6 +6,10 @@ import RecentAdditions from "@/components/public/RecentAdditions";
 import { prisma } from "@/lib/db";
 import type { MediaItem } from "@/lib/types";
 
+// Without this, `next build` prerenders the page once and newly published
+// media wouldn't appear until the next rebuild.
+export const dynamic = "force-dynamic";
+
 const MEDIA_SELECT = {
   id: true,
   title: true,

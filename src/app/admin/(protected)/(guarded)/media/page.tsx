@@ -2,13 +2,15 @@
 import { prisma } from "@/lib/db";
 import MediaManagerClient from "@/components/admin/MediaManagerClient";
 
-const RECENT_LIMIT = 10;
+// Matches the dashboard's cap — a simple limit rather than pagination is
+// enough until the library grows past what one page can reasonably show.
+const LIST_LIMIT = 200;
 
 export default async function MediaManagerPage() {
   const [recent, collectionRows] = await Promise.all([
     prisma.media.findMany({
       orderBy: { createdAt: "desc" },
-      take: RECENT_LIMIT,
+      take: LIST_LIMIT,
       select: {
         id: true,
         title: true,
@@ -40,9 +42,9 @@ export default async function MediaManagerPage() {
         Media Manager
       </h1>
       <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-        Upload a new 360° photo or video and fill in its details. New
-        uploads are saved as drafts — publishing them on the public site is
-        a separate step, coming next.
+        Upload 360° photos and videos, review their details, and publish
+        them to the public site. New uploads are saved as drafts until you
+        publish them.
       </p>
 
       <div className="mt-6">

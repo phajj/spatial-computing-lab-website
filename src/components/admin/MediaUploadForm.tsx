@@ -152,7 +152,9 @@ export default function MediaUploadForm({
         setError(body.error ?? "Upload failed.");
         return;
       }
-      setSuccess(`"${body.media.title}" uploaded as a draft.`);
+      setSuccess(
+        `"${body.media.title}" uploaded as a draft. Click Publish in the list below when it's ready to go live.`
+      );
       onUploaded?.(body.media);
       resetForm();
     };
@@ -395,8 +397,8 @@ export default function MediaUploadForm({
         {progress !== null ? "Uploading…" : "Upload as draft"}
       </button>
       <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-        New media is saved as a draft. Publishing comes with the next update
-        to the admin portal.
+        New media is saved as a draft and won&apos;t appear on the public site
+        until you publish it.
       </p>
     </form>
   );

@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import type { MediaItem } from "@/lib/types";
 import GalleryGrid from "@/components/public/GalleryGrid";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Gallery | Merrimack College Spatial Computing Lab",
   description:

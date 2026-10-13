@@ -4,6 +4,8 @@ import fs from "node:fs";
 import fsp from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
+import { getSession } from "@/lib/auth";
+import { prisma } from "@/lib/db";
 import { getMediaDir } from "@/lib/media-storage";
 
 const CONTENT_TYPES: Record<string, string> = {
@@ -42,6 +44,22 @@ export async function GET(
   if (absPath !== mediaDir && !absPath.startsWith(mediaDir + path.sep)) {
     return new NextResponse("Not found", { status: 404 });
   }
+
+  // Drafts (and any stray file with no media row) are admin-only, so a guessed URL can't reach them. They're
+  // also marked no-store, so a file that's later unpublished doesn't linger
+  // in a browser or proxy cache.
+  const src = "/media/" + segments.join("/");
+  const row = await prisma.media.findFirst({
+    where: { OR: [{ src }, { thumb: src }] },
+    select: { published: true },
+  });
+  const published = row?.published === true;
+  if (!published && !(await getSession())) {
+    return new NextResponse("Not found", { status: 404 });
+  }
+  const cacheControl = published
+    ? "public, max-age=31536000, immutable"
+    : "private, no-store";
 
   let stat;
   try {
@@ -84,7 +102,7 @@ export async function GET(
           "Content-Range": `bytes ${start}-${end}/${stat.size}`,
           "Content-Length": String(end - start + 1),
           "Accept-Ranges": "bytes",
-          "Cache-Control": "public, max-age=31536000, immutable",
+          "Cache-Control": cacheControl,
         },
       }
     );
@@ -96,7 +114,7 @@ export async function GET(
       "Content-Type": contentType,
       "Content-Length": String(stat.size),
       "Accept-Ranges": "bytes",
-      "Cache-Control": "public, max-age=31536000, immutable",
+      "Cache-Control": cacheControl,
     },
   });
 }

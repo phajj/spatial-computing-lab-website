@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import type { MediaItem } from "@/lib/types";
 import ViewerClient from "@/components/public/ViewerClient";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "360° Viewer | Merrimack College Spatial Computing Lab",
   description:

@@ -1,4 +1,5 @@
 // src/app/admin/(protected)/page.tsx
+import Link from "next/link";
 import { prisma } from "@/lib/db";
 
 // Formats a Date as "MM-DD-YYYY" — matches the date format used by the
@@ -39,7 +40,12 @@ export default async function AdminDashboardPage() {
         Dashboard
       </h1>
       <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-        Overview of published and draft 360° media.
+        Overview of published and draft 360° media. Click a title to edit or
+        publish it, or go to the{" "}
+        <Link href="/admin/media" className="text-[#00356A] underline dark:text-white">
+          Media Manager
+        </Link>{" "}
+        to upload.
         {total > DASHBOARD_ROW_LIMIT &&
           ` Showing the ${DASHBOARD_ROW_LIMIT} most recently added, out of ${total} total.`}
       </p>
@@ -75,7 +81,14 @@ export default async function AdminDashboardPage() {
             ) : (
               media.map((item) => (
                 <tr key={item.id} className="text-gray-800 dark:text-gray-200">
-                  <td className="px-4 py-3">{item.title}</td>
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/admin/media/${item.id}`}
+                      className="font-medium text-[#00356A] hover:underline dark:text-white"
+                    >
+                      {item.title}
+                    </Link>
+                  </td>
                   <td className="px-4 py-3 capitalize">{item.type}</td>
                   <td className="px-4 py-3">{item.category ?? "—"}</td>
                   <td className="px-4 py-3">{item.collection ?? "—"}</td>
