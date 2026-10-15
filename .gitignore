@@ -23,9 +23,10 @@
 # misc
 .DS_Store
 *.pem
+ADMIN.md
 
 # QA / local issue tracking (not filed as GitHub issues)
-ISSUES.md
+issues.md
 
 # debug
 npm-debug.log*

@@ -2,6 +2,7 @@
 import { APIError, betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { headers as nextHeaders } from "next/headers";
+import { redirect } from "next/navigation";
 import { prisma } from "./db";
 import { logAdminAction } from "./audit-log";
 
@@ -19,6 +20,31 @@ export const auth = betterAuth({
     // No public signup — admin accounts are created only via the
     // `create-admin` script (see scripts/create-admin.ts).
     disableSignUp: true,
+  },
+  // On by default only in production; forced on so it's never silently
+  // off. Shared by all clients (see ipAddress below).
+  rateLimit: {
+    enabled: true,
+    customRules: {
+      "/sign-in/email": { window: 60, max: 5 },
+      "/change-password": { window: 60, max: 5 },
+    },
+  },
+  advanced: {
+    // There's no proxy, so X-Forwarded-For comes from the client and can't
+    // be trusted. Reading no header puts every client in one bucket per
+    // path: unspoofable, but someone spamming bad passwords can lock
+    // everyone out of sign-in for up to a minute.
+    ipAddress: {
+      ipAddressHeaders: [],
+    },
+    // Secure cookies need HTTPS, which production has and dev doesn't.
+    useSecureCookies: process.env.NODE_ENV === "production",
+    defaultCookieAttributes: {
+      httpOnly: true,
+      sameSite: "strict",
+      path: "/",
+    },
   },
   user: {
     modelName: "admin",
@@ -108,4 +134,22 @@ export const auth = betterAuth({
  */
 export async function getSession() {
   return auth.api.getSession({ headers: await nextHeaders() });
+}
+
+/**
+ * Returns the current admin session, or redirects to the login page. Admin
+ * pages call this themselves rather than relying on their layouts, because
+ * Next.js can render a page without re-running its layout. Pass
+ * `allowPendingReset` only on the change-password page, so a forced reset
+ * can't redirect-loop.
+ */
+export async function requireAdmin({ allowPendingReset = false } = {}) {
+  const session = await getSession();
+  if (!session) {
+    redirect("/admin/login");
+  }
+  if (session.user.mustChangePassword && !allowPendingReset) {
+    redirect("/admin/change-password");
+  }
+  return session;
 }

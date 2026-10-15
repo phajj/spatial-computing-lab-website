@@ -7,7 +7,10 @@ import { useState } from "react";
 import ThemeToggle from "@/components/public/ThemeToggle";
 import { signOut } from "@/lib/auth-client";
 
-const navItems = [{ href: "/admin", label: "Dashboard" }];
+const navItems = [
+  { href: "/admin", label: "Dashboard" },
+  { href: "/admin/media", label: "Media Manager" },
+];
 
 const navLinkClass =
   "rounded px-3 py-1.5 text-sm font-medium text-[#00356A] transition hover:bg-black/5 dark:text-white dark:hover:bg-white/10";

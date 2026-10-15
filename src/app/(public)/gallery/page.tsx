@@ -1,7 +1,10 @@
 // src/app/(public)/gallery/page.tsx
 import type { Metadata } from "next";
+import { prisma } from "@/lib/db";
 import type { MediaItem } from "@/lib/types";
 import GalleryGrid from "@/components/public/GalleryGrid";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Gallery | Merrimack College Spatial Computing Lab",
@@ -9,117 +12,61 @@ export const metadata: Metadata = {
     "Browse 360° photos and videos from Merrimack College study abroad trips and campus events.",
 };
 
-// Temporary placeholder rows so the filterable grid can be built and reviewed
-// before the admin portal exists to publish real media. src/thumb are left
-// blank on purpose — MediaCard already falls back to a placeholder icon.
-const PLACEHOLDER_MEDIA: MediaItem[] = [
-  {
-    id: "placeholder-1",
-    title: "Placeholder Title — Acropolis Overlook",
-    src: "",
-    thumb: null,
-    type: "photo",
-    category: "study_abroad",
-    collection: "Greece 2026",
-    description: "Placeholder description text goes here.",
-    location: "Athens, Greece",
-    date: "2026-03-10",
-    featured: true,
-  },
-  {
-    id: "placeholder-2",
-    title: "Placeholder Title — Santorini Sunset Walkthrough",
-    src: "",
-    thumb: null,
-    type: "video",
-    category: "study_abroad",
-    collection: "Greece 2026",
-    description: "Placeholder description text goes here.",
-    location: "Santorini, Greece",
-    date: "2026-03-14",
-    featured: false,
-  },
-  {
-    id: "placeholder-3",
-    title: "Placeholder Title — Chefchaouen Blue Streets",
-    src: "",
-    thumb: null,
-    type: "photo",
-    category: "study_abroad",
-    collection: "Morocco 2025",
-    description: "Placeholder description text goes here.",
-    location: "Chefchaouen, Morocco",
-    date: "2025-10-02",
-    featured: false,
-  },
-  {
-    id: "placeholder-4",
-    title: "Placeholder Title — Sahara Desert",
-    src: "",
-    thumb: null,
-    type: "video",
-    category: "study_abroad",
-    collection: "Morocco 2025",
-    description: "Placeholder description text goes here.",
-    location: "Merzouga, Morocco",
-    date: "2025-10-05",
-    featured: true,
-  },
-  {
-    id: "placeholder-5",
-    title: "Placeholder Title — Banff National Park Overlook",
-    src: "",
-    thumb: null,
-    type: "photo",
-    category: "study_abroad",
-    collection: "Canada 2025",
-    description: "Placeholder description text goes here.",
-    location: "Banff, Alberta, Canada",
-    date: "2025-01-18",
-    featured: false,
-  },
-  {
-    id: "placeholder-6",
-    title: "Placeholder Title — Mack Gives Back Volunteer Day",
-    src: "",
-    thumb: null,
-    type: "photo",
-    category: "campus_events",
-    collection: "Mack Gives Back 2026",
-    description: "Placeholder description text goes here.",
-    location: "Merrimack College Quad",
-    date: "2026-04-18",
-    featured: true,
-  },
-  {
-    id: "placeholder-7",
-    title: "Placeholder Title — Commencement Ceremony",
-    src: "",
-    thumb: null,
-    type: "video",
-    category: "campus_events",
-    collection: "Commencement 2025",
-    description: "Placeholder description text goes here.",
-    location: "McQuade Library Quad",
-    date: "2025-05-17",
-    featured: false,
-  },
-  {
-    id: "placeholder-8",
-    title: "Placeholder Title — Move-In Day Welcome",
-    src: "",
-    thumb: null,
-    type: "photo",
-    category: "campus_events",
-    collection: "Move in Day 2026",
-    description: "Placeholder description text goes here.",
-    location: "Merrimack College Residence Halls",
-    date: "2026-08-29",
-    featured: false,
-  },
-];
+const MEDIA_SELECT = {
+  id: true,
+  title: true,
+  src: true,
+  thumb: true,
+  type: true,
+  category: true,
+  collection: true,
+  description: true,
+  location: true,
+  date: true,
+  featured: true,
+} as const;
 
-export default function GalleryPage() {
+function toMediaItem(row: {
+  id: string;
+  title: string;
+  src: string;
+  thumb: string | null;
+  type: string;
+  category: string | null;
+  collection: string | null;
+  description: string | null;
+  location: string | null;
+  date: Date | null;
+  featured: boolean;
+}): MediaItem {
+  return {
+    ...row,
+    type: row.type as MediaItem["type"],
+    category: row.category as MediaItem["category"],
+    date: row.date ? row.date.toISOString() : null,
+  };
+}
+
+async function getGalleryMedia(): Promise<{
+  media: MediaItem[];
+  loadError: boolean;
+}> {
+  try {
+    const rows = await prisma.media.findMany({
+      where: { published: true },
+      orderBy: { date: "desc" },
+      select: MEDIA_SELECT,
+    });
+    return { media: rows.map(toMediaItem), loadError: false };
+  } catch (error) {
+    console.error("Failed to load media for gallery:", error);
+    return { media: [], loadError: true };
+  }
+}
+
+export default async function GalleryPage() {
+  const { media, loadError } = await getGalleryMedia();
+
   return (
     <section className="bg-white dark:bg-gray-950">
       <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
@@ -128,12 +75,18 @@ export default function GalleryPage() {
             Gallery
           </h1>
           <p className="max-w-2xl text-lg text-gray-600 dark:text-gray-300">
-            Placeholder text — browse every 360° photo and video from the
-            Spatial Computing Lab, filterable by category and type.
+            Browse every 360° photo and video from the Spatial Computing Lab,
+            filterable by category and type.
           </p>
         </div>
 
-        <GalleryGrid media={PLACEHOLDER_MEDIA} />
+        {loadError ? (
+          <p className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-10 text-center text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
+            We couldn&apos;t load the gallery just now. Please try again shortly.
+          </p>
+        ) : (
+          <GalleryGrid media={media} />
+        )}
       </div>
     </section>
   );

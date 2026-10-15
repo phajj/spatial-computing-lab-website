@@ -9,7 +9,7 @@ A web platform for the Merrimack College Spatial Computing Lab that hosts immers
 | Framework | [Next.js](https://nextjs.org) (App Router) |
 | Database | [SQLite](https://sqlite.org) via [Prisma](https://www.prisma.io) |
 | Auth | [Better Auth](https://www.better-auth.com) (email + password, session-based) |
-| Media storage | Local disk on the Merrimack CS server, delivered via SFTP or admin upload |
+| Media storage | Local disk on the Merrimack CS server, added through admin portal upload |
 | 360° Viewer | [A-Frame](https://aframe.io) (WebXR) |
 | Styling | [Tailwind CSS](https://tailwindcss.com) |
 | Deployment | Self-hosted on the Merrimack College CS server, running as a `systemd` service (listens directly on port `49168`) |
@@ -37,8 +37,7 @@ A web platform for the Merrimack College Spatial Computing Lab that hosts immers
    - `DATABASE_URL` — path to the SQLite file, e.g. `file:../data/lab.db` (Prisma resolves this relative to `prisma/schema.prisma`, not the project root, hence the `../`)
    - `MEDIA_DIR` — absolute path to the directory where 360° media lives on disk, e.g. `/srv/spatial-lab/media`
    - `BETTER_AUTH_SECRET` — a long random string used to sign session cookies
-   - `BETTER_AUTH_URL` — the site's base URL (e.g. `http://localhost:3000` in dev, the production domain in prod)
-
+   - `BETTER_AUTH_URL` — the URL admins sign in at: `http://localhost:3000` in dev, and the site's public HTTPS URL on the server. Admin write requests are only accepted from this exact origin
 4. **Set up the database**
    ```bash
    npx prisma migrate dev
@@ -56,6 +55,11 @@ A web platform for the Merrimack College Spatial Computing Lab that hosts immers
    npm run dev
    ```
    Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+7. **Run the tests**
+   ```bash
+   npm test
+   ```
 
 ## Managing Admin Accounts
 
@@ -105,12 +109,41 @@ There is no self-service signup — admin accounts (email + password, via Better
 
 ## Admin Portal
 
-Reached at `/admin` after signing in at `/admin/login`. Everything under `/admin` except `/admin/login` requires a session, enforced server-side in `src/app/admin/(protected)/layout.tsx`, which redirects to `/admin/login` if there isn't one. Session checks are cached in a signed cookie for 60 seconds (`session.cookieCache` in `src/lib/auth.ts`) so most admin page loads skip the database.
+Reached at `/admin` on the public HTTPS site after signing in at `/admin/login`. Everything under `/admin` except `/admin/login` requires a session. Each admin page checks this itself by calling `requireAdmin()` from `src/lib/auth.ts`, which redirects to `/admin/login` if there isn't one; `src/app/admin/(protected)/layout.tsx` does the same check for the nav. Session checks are cached in a signed cookie for 60 seconds (`session.cookieCache` in `src/lib/auth.ts`) so most admin page loads skip the database.
 
-- **Dashboard** (`/admin`) — total/published/draft counts and a table of all media. Read-only for now; uploading and editing media (the media manager) hasn't been built yet.
+Security hardening:
+- **Sign-in and password change are rate-limited** to 5 attempts per minute (`rateLimit` in `src/lib/auth.ts`).
+- **Session cookies** are `Secure` (HTTPS-only) in production, `HttpOnly` and `SameSite=Strict`.
+- **Admin write routes** (`/api/admin/*`) reject any request whose `Origin` header isn't exactly `BETTER_AUTH_URL`'s origin (`src/lib/origin-check.ts`), which stops other websites from submitting changes using a signed-in admin's cookies. Better Auth applies its own origin check to `/api/auth/*`.
+- New admin pages must call `requireAdmin()`, and new admin API routes must check both the origin and the session themselves, under `/admin`, `/api/admin` or `/api/auth`.
+
+- **Dashboard** (`/admin`) — total/published/draft counts and a table of all media. Click a title to open its edit page.
+- **Media Manager** (`/admin/media`) — drag-and-drop upload, plus a list of all media filterable by All / Drafts / Published, with a one-click **Publish** / **Unpublish** button on each row.
+- **Edit Media** (`/admin/media/<id>`) — edit an item's details and change its publish status. The file itself can't be replaced here.
 - **Change Password** (`/admin/change-password`) — lets a signed-in admin change their own password: current password, then the new one twice. Requires the current password to match (same check Better Auth uses at sign-in) and revokes every other active session on success, while keeping the current one signed in. If the account had a pending forced reset (see `force-reset` above), this clears it.
 
-> **Not in scope (this step):** the media manager (drag-and-drop upload, metadata editing) is the next piece of the admin portal.
+### Admin Portal Workflow
+
+This is the day-to-day process for lab staff adding 360° media to the site. A short version of these steps also appears in the portal itself, under **How publishing works** on the Media Manager and Edit Media pages.
+
+1. **Sign in** — go to `<public URL>/admin` and sign in with the email and password you were given. If it's your first sign-in or your password was reset, go to **Change Password** and set your own.
+2. **Upload** — open **Media Manager**, then drag a 360° file into the upload box (or click it to browse). Photos must be equirectangular JPEG or PNG; videos must be MP4 or WebM. Fill in:
+   - **Title** (required) — defaults to the file name.
+   - **Type** — photo or video; set automatically from the file extension.
+   - **Category** — Study Abroad or Campus Events. This drives the Gallery's category filter.
+   - **Album** — pick an existing album, or choose **+ New album…** and name it `Destination Season Year` (e.g. "Greece Spring 2026"). Reuse an existing album rather than retyping it, so one trip doesn't end up split into two.
+   - **Location**, **Date**, **Description** — optional, shown with the item on the public site.
+   - **Feature on the home page** — puts it in the Home page's featured grid.
+   - **Hotspots** — optional, advanced; leave blank unless you know the JSON format.
+
+   Click **Upload as draft**. Every upload starts as a **draft**, which only signed-in admins can see.
+3. **Review** — click the item's title in the list (or on the Dashboard) to open its edit page. Check the details and fix anything that's wrong. **Save draft** saves your changes without making the item public.
+4. **Publish** — click **Publish** on the item's row in the Media Manager, or **Save & publish** on its edit page. It appears on the public Home, Gallery, and 360° Viewer pages immediately.
+5. **Check it live** — on a published item's edit page, click **View on public site** to open it in the 360° Viewer in a new tab.
+6. **Make changes later** — edit a published item and click **Save changes**; the public site updates immediately and the item stays published.
+7. **Unpublish** — click **Unpublish** in the list, or **Save & unpublish** on the edit page, and confirm. The item comes off the public site and goes back to draft. Its file and details are kept, so you can publish it again at any time.
+
+Use the **Drafts** filter in the Media Manager to see everything that's been uploaded but not published yet.
 
 ## Project Structure
 
@@ -123,6 +156,7 @@ src/
       (protected)/    ← everything else under /admin (session required — see Admin Portal)
         layout.tsx    ← redirects to /admin/login if there's no session
         page.tsx      ← dashboard (/admin)
+        media/        ← media manager (/admin/media) and edit page (/admin/media/<id>)
         change-password/ ← self-service password change
     api/              ← API routes
   components/
@@ -134,6 +168,7 @@ src/
     db.ts         ← Prisma client initialization
     auth.ts       ← Better Auth config and session helpers
     audit-log.ts  ← writes entries to the admin audit log (used by the scripts below)
+    origin-check.ts ← isTrustedOrigin, the CSRF check for admin write routes
 prisma/
   schema.prisma   ← SQLite schema (media, admins, plus Better Auth's session/account tables)
 scripts/
@@ -154,9 +189,20 @@ media/            ← 360° photo/video files, served statically (not committed)
 
 ## Media & Deployment Notes
 
-- 360° media lives on disk on the Merrimack CS server, under `MEDIA_DIR`. Legacy media arrives via SFTP directly into that directory; new media can also be uploaded through the admin portal, which writes the file to disk and registers its metadata in SQLite.
+- 360° media lives on disk on the Merrimack CS server, under `MEDIA_DIR`. All media is added through the admin portal's Media Manager, which writes the file to disk and creates its metadata row in SQLite in the same step. Don't copy files into `MEDIA_DIR` by hand — without a metadata row they won't appear anywhere on the site.
+- The site is deployed with an empty `MEDIA_DIR`; the initial library is uploaded through the admin portal after launch (see [Admin Portal Workflow](#admin-portal-workflow)).
+- Media files are served through `/media/...` (`src/app/media/[...path]/route.ts`). Only files belonging to a **published** media row are served publicly; drafts, and any file in `MEDIA_DIR` without a media row, return 404 unless an admin is signed in.
 - Back up `data/lab.db` regularly (a nightly cron job copying it off-box is enough) — self-hosting means backups are our responsibility, not a platform's.
 - Deployment runs directly on the Merrimack CS server as a `systemd` service at `/projects/spatial-lab`. The app listens directly on port `49168` so the site is reachable at `http://cs.merrimack.edu:49168`. A cleaner URL path may be added later; don't hardcode assumptions about one.
+- The app runs with `npm start` (`next start`). Deploy with `npm install && npx next build`, then restart the service. The `systemd` unit should run:
+  ```ini
+  WorkingDirectory=/projects/spatial-lab
+  Environment=PORT=49168
+  Environment=NODE_ENV=production
+  ExecStart=/usr/bin/npm start
+  ```
+  (Use the output of `which npm` on the server if npm lives somewhere else.) On the server, set `BETTER_AUTH_URL` in `.env.local` to the public HTTPS URL admins sign in at.
+- There's no reverse proxy in front of the app, so `X-Forwarded-For` is ignored (any client can fake it) and all clients share one sign-in rate limit. Nobody can get around that limit, but someone spamming wrong passwords can block every admin from signing in for up to a minute.
 
 ## Technical Context
 

@@ -28,7 +28,9 @@ export default function AdminLoginPage() {
       setError(
         signInError.code === "ACCOUNT_LOCKED"
           ? `Error to sign-in: ${signInError.message}`
-          : "Incorrect email or password."
+          : signInError.status === 429
+            ? "Too many sign-in attempts. Wait a minute, then try again."
+            : "Incorrect email or password."
       );
       return;
     }

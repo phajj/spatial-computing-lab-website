@@ -6,7 +6,7 @@ This project is building a web platform for the Merrimack College Spatial Comput
 - Next.js (React framework) for both the public site and admin portal
 - SQLite (via Prisma) for the database — chosen because the app, database, and media all live on one server, so there's no benefit to a networked database
 - Better Auth for admin authentication — email + password, session-based, no OAuth provider needed for a handful of known lab staff
-- 360° media stored on local disk on the Merrimack CS server, delivered via SFTP (legacy/bulk) or admin portal upload (new)
+- 360° media stored on local disk on the Merrimack CS server, added only through admin portal upload
 - A-Frame (WebXR) for the in-browser 360° photo and video viewer
 - Self-hosted on the Merrimack College CS server, running as a `systemd` service
 
@@ -15,7 +15,10 @@ This project is building a web platform for the Merrimack College Spatial Comput
 - The app listens directly on port `49168`, which is public-facing. The site is reachable at `http://cs.merrimack.edu:49168`. A cleaner URL (e.g. `cs.merrimack.edu/spatial-computing`) may be set up later once the site is live, but don't build anything that assumes a specific public path — keep all internal links relative/root-based.
 - SQLite has no port at all — it's a local file, not a network service.
 - Media is served through the same app/port as the rest of the site — it does not get its own separate port.
-- The app is managed by a `systemd` unit (`spatial-lab.service`).
+- The app is managed by a `systemd` unit (`spatial-lab.service`), which runs `npm start` → `next start`.
+- The site is served over HTTPS. Admins sign in directly at the public HTTPS URL (`/admin`), and `BETTER_AUTH_URL` on the server is that URL.
+- There's no reverse proxy, so never trust `X-Forwarded-For` or similar headers — any client can fake them. Better Auth reads no IP header (`ipAddressHeaders: []`), so the sign-in rate limit is shared by all clients.
+- Admin routes live under `/admin`, `/api/admin` or `/api/auth`. Every admin page must check the session itself (`requireAdmin()` in `src/lib/auth.ts`), not rely on its layout, and every admin API route must check the session and, for writes, the origin (`isTrustedOrigin()` in `src/lib/origin-check.ts`).
 
 **Brand**
 - Primary blue: `#00356A`
@@ -45,8 +48,8 @@ This project is building a web platform for the Merrimack College Spatial Comput
 - ✅ Dashboard (`/admin`) — read-only overview: total/published/draft counts and a table of all media
 - ✅ Self-service password change (`/admin/change-password`) — current password, then new password twice; revokes every other active session on success; clears any pending forced reset
 - ✅ Account management — no self-service signup; accounts and their lifecycle are managed entirely via CLI scripts in `scripts/` (`create-admin`, `ls-admin`, `change-pass`, `force-reset`, `lock-admin`, `unlock-admin`, `delete-admin`), all logged to an admin audit log (`admin-log`) — see README's "Managing Admin Accounts" section
-- ⬜ **To do:** Media manager — drag-and-drop upload, saves the file to disk under `MEDIA_DIR` and writes a matching metadata row (title, collection, category, description, location, featured flag, hotspots). This is the next piece of the admin portal to build.
-- Once built, all content changes should reflect on the public site immediately upon publish
+- ✅ Media manager — drag-and-drop upload, saves the file to disk under `MEDIA_DIR` and writes a matching metadata row (title, collection, category, description, location, featured flag, hotspots), plus metadata editing and publish/unpublish
+- All content changes reflect on the public site immediately upon publish
 
 > **Not in scope (possible future addition):** An article editor (TipTap rich text, draft/publish workflow) and event page creator are not being built at this time and may be added in a future phase.
 
@@ -59,7 +62,7 @@ This project is building a web platform for the Merrimack College Spatial Comput
 > **Not in scope (possible future addition):** `articles` and `events` tables are not being created at this time. If Articles and Events pages are added in the future, the likely schema would be: `articles` (id, title, slug, body, author, published_at, cover_image) and `events` (id, title, slug, date, location, description, media_id FK, published).
 
 **Media origin**
-360° content comes from Merrimack College study abroad trips and campus events. Legacy media arrives via SFTP directly into the `MEDIA_DIR` directory on the server; a one-time script registers matching metadata rows for it. New media is uploaded directly through the admin portal, which writes the file to disk and creates its metadata row in the same action. Supported formats: equirectangular JPEG/PNG for photos, MP4/WebM for video.
+360° content comes from Merrimack College study abroad trips and campus events. All media is uploaded through the admin portal, which writes the file to `MEDIA_DIR` and creates its metadata row in the same action. There is no SFTP or bulk-import path — the site is deployed with an empty `MEDIA_DIR` and the initial library is uploaded through the portal after launch. Supported formats: equirectangular JPEG/PNG for photos, MP4/WebM for video.
 
 **Conventions**
 - Collection naming: `Destination Season Year` (e.g. "Greece Spring 2026")
@@ -84,9 +87,10 @@ The public-facing site must be completed and presentable before any admin portal
 6. **Admin portal** *(steps 2–5 are complete, so this is underway)*
    - ✅ Dashboard (read-only) and self-service password change
    - ✅ Admin account management (CLI scripts) and audit log
-   - ⬜ **To do next:** Media manager — drag-and-drop upload, writes the file to `MEDIA_DIR` and creates its metadata row (title, collection, category, description, location, featured flag, hotspots)
-   - ⬜ **To do after that:** metadata editing/publish workflow for existing media, once upload exists
-  - ⬜ **To do after that:** Write Admin Portal Knowledge Base article / usermanual
+   - ✅ Media manager — drag-and-drop upload, writes the file to `MEDIA_DIR` and creates its metadata row (title, collection, category, description, location, featured flag, hotspots)
+   - ✅ Metadata editing/publish workflow for existing media
+   - ✅ Admin security hardening — direct HTTPS sign-in, rate-limited login, strict secure cookies, origin check on admin writes, per-page session checks
+   - ⬜ **To do next:** Write Admin Portal Knowledge Base article / usermanual
 ---
 
 **Instructions for Claude**
@@ -133,6 +137,7 @@ src/
     auth-client.ts    ← Better Auth client hooks for client components
     audit-log.ts      ← writes entries to the admin audit log
     types.ts          ← shared TS types (e.g. MediaItem)
+    origin-check.ts   ← isTrustedOrigin, the CSRF check for admin write routes
 prisma/
   schema.prisma       ← SQLite schema (media, admins, admin_audit_log, plus Better Auth's tables)
 scripts/              ← admin account management CLI scripts (see README)
@@ -146,3 +151,4 @@ When the developer references a GitHub issue by number or title, treat the issue
 - Do not use the Pages Router (`pages/` directory) under any circumstances
 - Do not use `any` types if TypeScript is introduced later
 - Do not generate placeholder or lorem ipsum content for the public site — use realistic Merrimack College Spatial Computing Lab context instead
+- Do not add a "Co-Authored-By: Claude" trailer (or any similar AI-attribution line) to git commit messages
