@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { buildMediaDestination, saveMediaFile } from "@/lib/media-storage";
+import { isTrustedOrigin } from "@/lib/origin-check";
 import type { MediaCategory, MediaType } from "@/lib/types";
 
 // Generous cap for 360° video while still bounding disk usage from a bad
@@ -23,6 +24,10 @@ function readField(formData: FormData, key: string) {
 // publish workflow is the next piece of the admin portal to build, per
 // CLAUDE.md's build order.
 export async function POST(req: NextRequest) {
+  if (!isTrustedOrigin(req.headers.get("origin"))) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

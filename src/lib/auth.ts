@@ -2,9 +2,9 @@
 import { APIError, betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { headers as nextHeaders } from "next/headers";
+import { redirect } from "next/navigation";
 import { prisma } from "./db";
 import { logAdminAction } from "./audit-log";
-import { isLoopbackOrigin } from "./loopback";
 
 // Server-side Better Auth instance. The Prisma "Admin" model stands in
 // for Better Auth's default "user" model (see prisma/schema.prisma),
@@ -15,14 +15,6 @@ export const auth = betterAuth({
   }),
   baseURL: process.env.BETTER_AUTH_URL,
   secret: process.env.BETTER_AUTH_SECRET,
-  // Admins reach the portal through an SSH tunnel on a local port of their
-  // choosing (http://localhost:8080, :9000, ...), so accept any loopback
-  // origin. Safe because server.ts only lets loopback requests reach
-  // /api/auth at all.
-  trustedOrigins: (request) => {
-    const origin = request?.headers.get("origin");
-    return origin && isLoopbackOrigin(origin) ? [origin] : [];
-  },
   emailAndPassword: {
     enabled: true,
     // No public signup — admin accounts are created only via the
@@ -30,8 +22,7 @@ export const auth = betterAuth({
     disableSignUp: true,
   },
   // On by default only in production; forced on so it's never silently
-  // off. Keyed by IP, and every tunnelled request arrives from 127.0.0.1,
-  // so all admins share these limits.
+  // off. Shared by all clients (see ipAddress below).
   rateLimit: {
     enabled: true,
     customRules: {
@@ -40,15 +31,15 @@ export const auth = betterAuth({
     },
   },
   advanced: {
-    // server.ts overwrites this header with the real TCP peer address, so
-    // the rate limiter can't be dodged by sending a fake one.
+    // There's no proxy, so X-Forwarded-For comes from the client and can't
+    // be trusted. Reading no header puts every client in one bucket per
+    // path: unspoofable, but someone spamming bad passwords can lock
+    // everyone out of sign-in for up to a minute.
     ipAddress: {
-      ipAddressHeaders: ["x-forwarded-for"],
+      ipAddressHeaders: [],
     },
-    // `secure` stays off on purpose: admins use plain http://localhost
-    // through the tunnel (SSH does the encrypting), and some browsers won't
-    // send Secure cookies over http, even to localhost.
-    useSecureCookies: false,
+    // Secure cookies need HTTPS, which production has and dev doesn't.
+    useSecureCookies: process.env.NODE_ENV === "production",
     defaultCookieAttributes: {
       httpOnly: true,
       sameSite: "strict",
@@ -143,4 +134,22 @@ export const auth = betterAuth({
  */
 export async function getSession() {
   return auth.api.getSession({ headers: await nextHeaders() });
+}
+
+/**
+ * Returns the current admin session, or redirects to the login page. Admin
+ * pages call this themselves rather than relying on their layouts, because
+ * Next.js can render a page without re-running its layout. Pass
+ * `allowPendingReset` only on the change-password page, so a forced reset
+ * can't redirect-loop.
+ */
+export async function requireAdmin({ allowPendingReset = false } = {}) {
+  const session = await getSession();
+  if (!session) {
+    redirect("/admin/login");
+  }
+  if (session.user.mustChangePassword && !allowPendingReset) {
+    redirect("/admin/change-password");
+  }
+  return session;
 }

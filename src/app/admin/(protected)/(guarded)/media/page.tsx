@@ -1,4 +1,5 @@
 // src/app/admin/(protected)/(guarded)/media/page.tsx
+import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import MediaManagerClient from "@/components/admin/MediaManagerClient";
 
@@ -7,6 +8,8 @@ import MediaManagerClient from "@/components/admin/MediaManagerClient";
 const LIST_LIMIT = 200;
 
 export default async function MediaManagerPage() {
+  await requireAdmin();
+
   const [recent, collectionRows] = await Promise.all([
     prisma.media.findMany({
       orderBy: { createdAt: "desc" },

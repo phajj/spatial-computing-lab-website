@@ -1,5 +1,6 @@
 // src/app/admin/(protected)/(guarded)/media/[id]/page.tsx
 import { notFound } from "next/navigation";
+import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import MediaEditForm from "@/components/admin/MediaEditForm";
 import PublishingGuide from "@/components/admin/PublishingGuide";
@@ -9,6 +10,8 @@ export default async function MediaEditPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireAdmin();
+
   const { id } = await params;
 
   const [media, collectionRows] = await Promise.all([

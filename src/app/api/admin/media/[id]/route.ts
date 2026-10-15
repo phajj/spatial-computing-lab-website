@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { isTrustedOrigin } from "@/lib/origin-check";
 import type { MediaCategory, MediaType } from "@/lib/types";
 
 const TYPES: MediaType[] = ["photo", "video"];
@@ -23,6 +24,10 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!isTrustedOrigin(req.headers.get("origin"))) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

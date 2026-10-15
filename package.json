@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "tsx server.ts --dev",
+    "dev": "next dev",
     "build": "next build",
-    "start": "tsx server.ts",
+    "start": "next start",
     "lint": "eslint",
     "test": "tsx --test \"src/**/*.test.ts\"",
     "postinstall": "prisma generate",
@@ -25,8 +25,7 @@
     "better-auth": "^1.6.27",
     "next": "16.2.7",
     "react": "19.2.4",
-    "react-dom": "19.2.4",
-    "tsx": "^4.23.12"
+    "react-dom": "19.2.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -38,6 +37,7 @@
     "eslint-config-next": "16.2.7",
     "prisma": "6.19.3",
     "tailwindcss": "^4",
+    "tsx": "^4.23.12",
     "typescript": "^5"
   },
   "allowScripts": {

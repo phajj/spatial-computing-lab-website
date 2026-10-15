@@ -1,5 +1,6 @@
 // src/app/admin/(protected)/page.tsx
 import Link from "next/link";
+import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
 // Formats a Date as "MM-DD-YYYY" — matches the date format used by the
@@ -15,6 +16,8 @@ function formatDate(date: Date) {
 const DASHBOARD_ROW_LIMIT = 200;
 
 export default async function AdminDashboardPage() {
+  await requireAdmin();
+
   const [total, published, media] = await Promise.all([
     prisma.media.count(),
     prisma.media.count({ where: { published: true } }),

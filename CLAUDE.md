@@ -15,8 +15,10 @@ This project is building a web platform for the Merrimack College Spatial Comput
 - The app listens directly on port `49168`, which is public-facing. The site is reachable at `http://cs.merrimack.edu:49168`. A cleaner URL (e.g. `cs.merrimack.edu/spatial-computing`) may be set up later once the site is live, but don't build anything that assumes a specific public path — keep all internal links relative/root-based.
 - SQLite has no port at all — it's a local file, not a network service.
 - Media is served through the same app/port as the rest of the site — it does not get its own separate port.
-- The app is managed by a `systemd` unit (`spatial-lab.service`), which runs `npm start` → `tsx server.ts`, a small custom server in front of Next.js (not `next start`).
-- **The admin area is loopback-only.** `server.ts` (via `src/lib/admin-guard.ts`) returns the normal 404 page for `/admin/*`, `/api/admin/*` and `/api/auth/*` unless the TCP peer (`req.socket.remoteAddress`) is loopback. Admins reach it through an SSH tunnel (`ssh -L 8080:localhost:49168 …`, then `http://localhost:8080/admin`; see `ADMIN.md`), so `BETTER_AUTH_URL` on the server is `http://localhost:8080`. Never trust `X-Forwarded-For` or similar headers, since there's no proxy. Any new admin route must live under one of those prefixes.
+- The app is managed by a `systemd` unit (`spatial-lab.service`), which runs `npm start` → `next start`.
+- The site is served over HTTPS. Admins sign in directly at the public HTTPS URL (`/admin`), and `BETTER_AUTH_URL` on the server is that URL.
+- There's no reverse proxy, so never trust `X-Forwarded-For` or similar headers — any client can fake them. Better Auth reads no IP header (`ipAddressHeaders: []`), so the sign-in rate limit is shared by all clients.
+- Admin routes live under `/admin`, `/api/admin` or `/api/auth`. Every admin page must check the session itself (`requireAdmin()` in `src/lib/auth.ts`), not rely on its layout, and every admin API route must check the session and, for writes, the origin (`isTrustedOrigin()` in `src/lib/origin-check.ts`).
 
 **Brand**
 - Primary blue: `#00356A`
@@ -87,7 +89,7 @@ The public-facing site must be completed and presentable before any admin portal
    - ✅ Admin account management (CLI scripts) and audit log
    - ✅ Media manager — drag-and-drop upload, writes the file to `MEDIA_DIR` and creates its metadata row (title, collection, category, description, location, featured flag, hotspots)
    - ✅ Metadata editing/publish workflow for existing media
-   - ✅ SSH-tunnel admin lockdown — admin routes answer only to loopback requests (custom `server.ts` guard), hardened Better Auth cookies/rate limit/origin checks, `ADMIN.md` tunnel guide
+   - ✅ Admin security hardening — direct HTTPS sign-in, rate-limited login, strict secure cookies, origin check on admin writes, per-page session checks
    - ⬜ **To do next:** Write Admin Portal Knowledge Base article / usermanual
 ---
 
@@ -135,10 +137,7 @@ src/
     auth-client.ts    ← Better Auth client hooks for client components
     audit-log.ts      ← writes entries to the admin audit log
     types.ts          ← shared TS types (e.g. MediaItem)
-    loopback.ts       ← isLoopback / isAdminPath helpers
-    admin-guard.ts    ← loopback-only guard for admin routes
-server.ts             ← custom server running Next.js behind the admin guard
-ADMIN.md              ← SSH-tunnel sign-in guide for lab staff
+    origin-check.ts   ← isTrustedOrigin, the CSRF check for admin write routes
 prisma/
   schema.prisma       ← SQLite schema (media, admins, admin_audit_log, plus Better Auth's tables)
 scripts/              ← admin account management CLI scripts (see README)
