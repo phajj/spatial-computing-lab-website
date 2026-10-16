@@ -1,0 +1,32 @@
+# deploy/spatial-lab.service
+# Install: sudo cp deploy/spatial-lab.service /etc/systemd/system/
+# See README "Deployment" for the full steps.
+
+[Unit]
+Description=Merrimack Spatial Computing Lab website (Next.js)
+After=network.target
+
+[Service]
+Type=simple
+# The account that owns /projects/spatial-lab. Never run the app as root.
+User=spatial-lab
+Group=spatial-lab
+WorkingDirectory=/projects/spatial-lab
+
+# Everything else (DATABASE_URL, MEDIA_DIR, BETTER_AUTH_SECRET, BETTER_AUTH_URL)
+# lives in /projects/spatial-lab/.env.local, which Next.js loads on startup.
+Environment=NODE_ENV=production
+Environment=PORT=49168
+
+# Use the output of `which npm` on the server if npm lives somewhere else.
+ExecStart=/usr/bin/npm start
+
+Restart=on-failure
+RestartSec=5
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target
