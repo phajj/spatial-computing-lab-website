@@ -72,7 +72,7 @@ export default function Viewer360({ media, muted, setMuted, reverseDrag, setReve
 
   if (!aframeReady) {
     return (
-      <div className="flex h-full w-full items-center justify-center bg-[#1a4f8a]">
+      <div className="flex h-full w-full items-center justify-center bg-mc-blue">
         <p className="text-sm font-medium text-white/80">
           Loading 360&deg; viewer&hellip;
         </p>
@@ -81,6 +81,11 @@ export default function Viewer360({ media, muted, setMuted, reverseDrag, setReve
   }
 
   const assetId = `viewer-media-${media.id}`;
+
+  // A-Frame takes colors as a plain attribute string, so Tailwind classes can't
+  // reach it; read the brand tokens from globals.css instead.
+  const rootStyle = getComputedStyle(document.documentElement);
+  const loadingScreen = `dotsColor: ${rootStyle.getPropertyValue("--mc-gold").trim()}; backgroundColor: ${rootStyle.getPropertyValue("--mc-blue").trim()}`;
 
   return (
     <div ref={containerRef} className="relative h-full w-full bg-black">
@@ -99,7 +104,7 @@ export default function Viewer360({ media, muted, setMuted, reverseDrag, setReve
       <a-scene
         embedded
         vr-mode-ui="enabled: false"
-        loading-screen="dotsColor: #FFE000; backgroundColor: #00356A"
+        loading-screen={loadingScreen}
       >
         {media.type === "video" && (
           <a-assets timeout="10000">
@@ -141,13 +146,13 @@ export default function Viewer360({ media, muted, setMuted, reverseDrag, setReve
               return next;
             });
           }}
-          className="absolute bottom-4 left-4 z-[10000] rounded-full bg-black/60 px-4 py-2 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-black/80"
+          className="absolute bottom-4 left-4 z-[10000] rounded-full bg-black/60 px-4 py-2 text-xs font-bold uppercase tracking-wider text-white transition hover:bg-black/80"
         >
           {muted ? "Unmute" : "Mute"}
         </button>
       )}
 
-      <div className="absolute right-4 top-4 z-[10000] flex items-center gap-2 rounded-full bg-black/60 py-2 pl-3 pr-2 text-xs font-bold uppercase tracking-wide text-white">
+      <div className="absolute right-4 top-4 z-[10000] flex items-center gap-2 rounded-full bg-black/60 py-2 pl-3 pr-2 text-xs font-bold uppercase tracking-wider text-white">
         <span>Inverted Controls</span>
         <button
           type="button"
@@ -156,7 +161,7 @@ export default function Viewer360({ media, muted, setMuted, reverseDrag, setReve
           aria-label="Toggle inverted drag controls"
           onClick={() => setReverseDrag((current) => !current)}
           className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${
-            reverseDrag ? "bg-[#1a4f8a]" : "bg-white/30"
+            reverseDrag ? "bg-mc-gold" : "bg-white/30"
           }`}
         >
           <span
@@ -167,7 +172,7 @@ export default function Viewer360({ media, muted, setMuted, reverseDrag, setReve
         </button>
       </div>
 
-      <div className="absolute right-4 top-1/2 z-[10000] flex -translate-y-1/2 flex-col items-center gap-2 rounded-full bg-black/60 px-3 py-3 text-xs font-bold uppercase tracking-wide text-white">
+      <div className="absolute right-4 top-1/2 z-[10000] flex -translate-y-1/2 flex-col items-center gap-2 rounded-full bg-black/60 px-3 py-3 text-xs font-bold uppercase tracking-wider text-white">
         <span>Zoom</span>
         <div className="relative h-28 w-8">
           <input
@@ -178,7 +183,7 @@ export default function Viewer360({ media, muted, setMuted, reverseDrag, setReve
             value={zoom}
             onChange={(event) => setZoom(Number(event.target.value))}
             aria-label="Zoom level"
-            className="absolute left-1/2 top-1/2 h-1.5 w-24 -translate-x-1/2 -translate-y-1/2 -rotate-90 cursor-pointer appearance-none rounded-full bg-white/30 accent-[#FFE000]"
+            className="absolute left-1/2 top-1/2 h-1.5 w-24 -translate-x-1/2 -translate-y-1/2 -rotate-90 cursor-pointer appearance-none rounded-full bg-white/30 accent-mc-gold"
           />
         </div>
       </div>
@@ -187,7 +192,7 @@ export default function Viewer360({ media, muted, setMuted, reverseDrag, setReve
         type="button"
         onClick={toggleFullscreen}
         aria-label={isImmersive ? "Exit fullscreen" : "Enter fullscreen"}
-        className="absolute bottom-4 right-4 z-[10000] rounded-full bg-black/60 p-3 text-white transition hover:bg-[#1a4f8a]"
+        className="absolute bottom-4 right-4 z-[10000] rounded-full bg-black/60 p-3 text-white transition hover:bg-mc-blue"
       >
         {isImmersive ? (
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

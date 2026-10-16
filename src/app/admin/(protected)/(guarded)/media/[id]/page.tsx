@@ -34,7 +34,7 @@ export default async function MediaEditPage({
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
-      <h1 className="font-serif text-2xl text-[#00356A] dark:text-white">
+      <h1 className="font-extrabold text-2xl text-mc-blue dark:text-white">
         Edit Media
       </h1>
       <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">

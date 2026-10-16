@@ -39,13 +39,13 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-      <h1 className="font-serif text-2xl text-[#00356A] dark:text-white">
+      <h1 className="font-extrabold text-2xl text-mc-blue dark:text-white">
         Dashboard
       </h1>
       <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
         Overview of published and draft 360° media. Click a title to edit or
         publish it, or go to the{" "}
-        <Link href="/admin/media" className="text-[#00356A] underline dark:text-white">
+        <Link href="/admin/media" className="text-mc-blue underline dark:text-white">
           Media Manager
         </Link>{" "}
         to upload.
@@ -87,7 +87,7 @@ export default async function AdminDashboardPage() {
                   <td className="px-4 py-3">
                     <Link
                       href={`/admin/media/${item.id}`}
-                      className="font-medium text-[#00356A] hover:underline dark:text-white"
+                      className="font-medium text-mc-blue hover:underline dark:text-white"
                     >
                       {item.title}
                     </Link>
@@ -121,7 +121,7 @@ function StatCard({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-lg border border-black/10 bg-white p-4 dark:border-white/10 dark:bg-gray-900">
       <p className="text-sm text-gray-600 dark:text-gray-400">{label}</p>
-      <p className="mt-1 font-serif text-3xl text-[#00356A] dark:text-white">
+      <p className="mt-1 font-extrabold text-3xl text-mc-blue dark:text-white">
         {value}
       </p>
     </div>

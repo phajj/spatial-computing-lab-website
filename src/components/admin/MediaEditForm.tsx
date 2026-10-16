@@ -6,7 +6,7 @@ import { useState } from "react";
 import type { MediaCategory, MediaType } from "@/lib/types";
 
 const inputClass =
-  "w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-[#00356A] focus:outline-none focus:ring-1 focus:ring-[#00356A] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100";
+  "w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-mc-blue focus:outline-none focus:ring-1 focus:ring-mc-blue dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100";
 
 const labelClass =
   "mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300";
@@ -174,7 +174,7 @@ export default function MediaEditForm({
             href={`/viewer#viewer=${media.id}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-full border border-[#00356A]/20 px-3 py-1 text-xs font-medium text-[#00356A] transition hover:bg-black/5 dark:border-white/20 dark:text-white dark:hover:bg-white/10"
+            className="rounded-full border border-mc-blue/20 px-3 py-1 text-xs font-medium text-mc-blue transition hover:bg-black/5 dark:border-white/20 dark:text-white dark:hover:bg-white/10"
           >
             View on public site
           </a>
@@ -328,7 +328,7 @@ export default function MediaEditForm({
             type="checkbox"
             checked={featured}
             onChange={(e) => setFeatured(e.target.checked)}
-            className="h-4 w-4 rounded border-gray-300 text-[#00356A] focus:ring-[#00356A]"
+            className="h-4 w-4 rounded border-gray-300 text-mc-blue focus:ring-mc-blue"
           />
           <label
             htmlFor="featured"
@@ -359,7 +359,7 @@ export default function MediaEditForm({
             <button
               type="submit"
               disabled={saving}
-              className="rounded-full bg-[#FFE000] px-4 py-2 text-sm font-bold text-[#00356A] transition hover:bg-[#00356A] hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-full bg-mc-gold px-4 py-2 text-sm font-bold text-mc-blue transition hover:bg-mc-blue hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
             >
               {saveTarget === true ? "Saving…" : "Save changes"}
             </button>
@@ -367,7 +367,7 @@ export default function MediaEditForm({
               type="button"
               disabled={saving}
               onClick={() => save(false)}
-              className="rounded-full border border-[#00356A]/20 px-4 py-2 text-sm font-medium text-[#00356A] transition hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/20 dark:text-white dark:hover:bg-white/10"
+              className="rounded-full border border-mc-blue/20 px-4 py-2 text-sm font-medium text-mc-blue transition hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/20 dark:text-white dark:hover:bg-white/10"
             >
               {saveTarget === false ? "Saving…" : "Save & unpublish"}
             </button>
@@ -378,14 +378,14 @@ export default function MediaEditForm({
               type="button"
               disabled={saving}
               onClick={() => save(true)}
-              className="rounded-full bg-[#FFE000] px-4 py-2 text-sm font-bold text-[#00356A] transition hover:bg-[#00356A] hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-full bg-mc-gold px-4 py-2 text-sm font-bold text-mc-blue transition hover:bg-mc-blue hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
             >
               {saveTarget === true ? "Saving…" : "Save & publish"}
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="rounded-full border border-[#00356A]/20 px-4 py-2 text-sm font-medium text-[#00356A] transition hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/20 dark:text-white dark:hover:bg-white/10"
+              className="rounded-full border border-mc-blue/20 px-4 py-2 text-sm font-medium text-mc-blue transition hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/20 dark:text-white dark:hover:bg-white/10"
             >
               {saveTarget === false ? "Saving…" : "Save draft"}
             </button>
@@ -394,7 +394,7 @@ export default function MediaEditForm({
         <button
           type="button"
           onClick={() => router.push("/admin/media")}
-          className="rounded-full border border-[#00356A]/20 px-4 py-2 text-sm font-medium text-[#00356A] transition hover:bg-black/5 dark:border-white/20 dark:text-white dark:hover:bg-white/10"
+          className="rounded-full border border-mc-blue/20 px-4 py-2 text-sm font-medium text-mc-blue transition hover:bg-black/5 dark:border-white/20 dark:text-white dark:hover:bg-white/10"
         >
           Back to Media Manager
         </button>

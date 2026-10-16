@@ -24,7 +24,7 @@ export default function MediaCard({ media }: { media: MediaItem }) {
       href={`/viewer#viewer=${media.id}`}
       className="group block overflow-hidden rounded-lg border border-gray-100 bg-white shadow-sm transition hover:shadow-lg dark:border-gray-700 dark:bg-gray-800"
     >
-      <div className="relative aspect-video w-full overflow-hidden bg-[#1a4f8a]">
+      <div className="relative aspect-video w-full overflow-hidden bg-mc-blue">
         {media.thumb ? (
           <Image
             src={media.thumb}
@@ -53,18 +53,18 @@ export default function MediaCard({ media }: { media: MediaItem }) {
         )}
 
         {categoryLabel && (
-          <span className="absolute left-3 top-3 rounded-full bg-[#FFE000] px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-[#00356A]">
+          <span className="absolute left-3 top-3 rounded-full bg-mc-gold px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-mc-blue">
             {categoryLabel}
           </span>
         )}
 
-        <span className="absolute right-3 top-3 rounded-full bg-black/60 px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-white">
+        <span className="absolute right-3 top-3 rounded-full bg-black/60 px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-white">
           360° {media.type === "video" ? "Video" : "Photo"}
         </span>
       </div>
 
       <div className="p-4">
-        <h3 className="font-serif text-lg text-[#00356A] dark:text-white">
+        <h3 className="font-extrabold text-lg text-mc-blue dark:text-white">
           {media.title}
         </h3>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">

@@ -29,14 +29,14 @@ export default function PublishingGuide({ defaultOpen = false }: { defaultOpen?:
       open={defaultOpen}
       className="group rounded-lg border border-black/10 bg-white p-4 dark:border-white/10 dark:bg-gray-900"
     >
-      <summary className="cursor-pointer list-none text-sm font-medium text-[#00356A] dark:text-white">
+      <summary className="cursor-pointer list-none text-sm font-medium text-mc-blue dark:text-white">
         <span className="mr-2 inline-block transition group-open:rotate-90">›</span>
         How publishing works
       </summary>
       <ol className="mt-4 space-y-3">
         {STEPS.map((step, i) => (
           <li key={step.title} className="flex gap-3">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#FFE000] text-xs font-bold text-[#00356A]">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-mc-gold text-xs font-bold text-mc-blue">
               {i + 1}
             </span>
             <div>

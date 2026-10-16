@@ -20,17 +20,19 @@ This project is building a web platform for the Merrimack College Spatial Comput
 - There's no reverse proxy, so the app reads no client-IP headers such as `X-Forwarded-For` (Better Auth is configured with `ipAddressHeaders: []`). Keep it that way.
 - Admin routes live under `/admin`, `/api/admin` or `/api/auth`. Every admin page must check the session itself (`requireAdmin()` in `src/lib/auth.ts`), not rely on its layout, and every admin API route must check the session and, for writes, the origin (`isTrustedOrigin()` in `src/lib/origin-check.ts`).
 
-**Brand**
-- Primary blue: `#00356A`
-- Yellow accent: `#FFE000` (buttons, badges, highlights)
-- Mid blue for surfaces: `#1a4f8a`
-- Fonts: DM Serif Display (headings) and DM Sans (UI and body text)
+**Brand** (Merrimack College Visual Identity Guidelines, 2025 — tokens live in `src/app/globals.css`)
+- Merrimack Blue `#003767` — Tailwind `mc-blue`, CSS `--mc-blue`. Dominant brand color.
+- Merrimack Gold `#FFDD00` — Tailwind `mc-gold`, CSS `--mc-gold`. Accent only (buttons, badges, highlights, active states). Never Gold text on a light background (1.35:1).
+- Gray `#82868A` — Tailwind `mc-gray`, CSS `--mc-gray`. Borders/disabled/large text only (3.67:1 on white); keep Tailwind `gray-500`+ for small secondary text.
+- Never write brand hex values in class names (`text-[#...]`) — use the `mc-*` utilities.
+- Font: Montserrat everywhere (what merrimack.edu uses in place of Gotham), loaded via `next/font` in `src/app/layout.tsx` and set once as `--mc-font-sans` in `globals.css`. No other typefaces and no per-element `font-family`.
+- Weights (matching merrimack.edu): headings `font-extrabold` (800); small uppercase labels/eyebrows `font-bold uppercase tracking-wider` (700, 0.05em); body text 400–500.
 
 **Color usage convention (all public pages)**
-- Header and Hero use a white background in light mode — never a blue background — with headings and nav text in primary blue (`#00356A`).
+- Header and Hero use a white background in light mode — never a blue background — with headings and nav text in Merrimack Blue (`mc-blue`).
 - Primary blue is reserved for: heading/"big important" text on light surfaces, and full-width middle bands (stats bar, footer) that stay blue in both light and dark mode as a fixed brand anchor.
-- Dark mode: class-based (`.dark` on `<html>`, not OS-media-query-only), toggled by `ThemeToggle.tsx`, persisted to `localStorage`, initialized from system preference on first visit. Header and blue bands switch to `#00356A` as their dark background; Hero and content sections use neutral dark grays (`gray-950`/`gray-900`) rather than a new hue; headings switch to white in dark mode since blue-on-dark-blue/gray fails contrast.
-- Do not introduce new hues for dark mode — reuse the three brand colors plus the existing Tailwind gray scale already used for body text/borders.
+- Dark mode: class-based (`.dark` on `<html>`, not OS-media-query-only), toggled by `ThemeToggle.tsx`, persisted to `localStorage`, initialized from system preference on first visit. Header and blue bands switch to `mc-blue` as their dark background; Hero and content sections use neutral dark grays (`gray-950`/`gray-900`) rather than a new hue; headings switch to white in dark mode since blue-on-dark-blue/gray fails contrast.
+- Do not introduce new hues for dark mode — reuse the brand colors plus the existing Tailwind gray scale already used for body text/borders.
 
 **Public site pages**
 - Home — hero, stats bar, featured 360° media grid, recent additions
@@ -107,7 +109,7 @@ You are a senior full-stack developer and technical advisor for this project. Th
 **How to write code**
 - Always specify the full file path as a comment at the top of every code block (e.g. `// app/admin/page.jsx`)
 - Write complete files, not partial snippets, unless the file is very large — in that case clearly mark what to replace and where
-- Use the existing brand colors and fonts in all UI code — never introduce new colors or switch to a different font
+- Use the brand tokens (`mc-blue`, `mc-gold`, `mc-gray`) and the single Montserrat font in all UI code — never introduce new colors, hard-coded hex values, or a different font
 - Use Prisma for all database operations — no raw SQL, no hand-built query strings
 - Keep A-Frame logic inside `Viewer360.jsx` and never import or use A-Frame elsewhere
 - Use Next.js App Router conventions (`app/` directory, `page.jsx`, `layout.jsx`, `route.js` for API routes) — not the older Pages Router
