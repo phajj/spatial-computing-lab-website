@@ -71,7 +71,7 @@ export default async function GalleryPage() {
     <section className="bg-white dark:bg-gray-950">
       <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
         <div className="mb-8 flex flex-col gap-2">
-          <h1 className="font-serif text-4xl text-[#00356A] dark:text-white">
+          <h1 className="font-extrabold text-4xl text-mc-blue dark:text-white">
             Gallery
           </h1>
           <p className="max-w-2xl text-lg text-gray-600 dark:text-gray-300">

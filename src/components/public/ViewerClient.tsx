@@ -106,7 +106,7 @@ export default function ViewerClient({
         </p>
         <Link
           href="/gallery"
-          className="mt-6 inline-block rounded-md bg-[#FFE000] px-6 py-3 text-sm font-bold text-[#00356A] transition hover:bg-[#00356A] hover:text-white"
+          className="mt-6 inline-block rounded-md bg-mc-gold px-6 py-3 text-sm font-bold text-mc-blue transition hover:bg-mc-blue hover:text-white"
         >
           Back to Gallery
         </Link>
@@ -170,16 +170,16 @@ export default function ViewerClient({
         <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
           <div className="flex flex-wrap items-center gap-2">
             {categoryLabel && (
-              <span className="rounded-full bg-[#FFE000] px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-[#00356A]">
+              <span className="rounded-full bg-mc-gold px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-mc-blue">
                 {categoryLabel}
               </span>
             )}
-            <span className="rounded-full bg-[#00356A] px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-white dark:bg-[#1a4f8a]">
+            <span className="rounded-full bg-mc-blue px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-white">
               360&deg; {activeItem.type === "video" ? "Video" : "Photo"}
             </span>
           </div>
 
-          <h1 className="mt-4 font-serif text-3xl text-[#00356A] dark:text-white sm:text-4xl">
+          <h1 className="mt-4 font-extrabold text-3xl text-mc-blue dark:text-white sm:text-4xl">
             {activeItem.title}
           </h1>
 
@@ -197,14 +197,14 @@ export default function ViewerClient({
 
           <Link
             href="/gallery"
-            className="mt-6 inline-block text-sm font-bold text-[#00356A] hover:underline dark:text-[#FFE000]"
+            className="mt-6 inline-block text-sm font-bold text-mc-blue hover:underline dark:text-mc-gold"
           >
             &larr; Back to Gallery
           </Link>
 
           {collectionItems.length > 1 && (
             <div className="mt-10">
-              <p className="mb-3 text-sm font-bold uppercase tracking-wide text-[#00356A] dark:text-white">
+              <p className="mb-3 text-sm font-bold uppercase tracking-wider text-mc-blue dark:text-white">
                 More from {activeItem.collection}
               </p>
               <div className="flex gap-3 overflow-x-auto pb-2">
@@ -215,8 +215,8 @@ export default function ViewerClient({
                     onClick={() => goToId(item.id)}
                     className={`relative aspect-video w-32 shrink-0 overflow-hidden rounded-md border-2 transition sm:w-40 ${
                       item.id === activeItem.id
-                        ? "border-[#FFE000]"
-                        : "border-transparent hover:border-[#00356A]/40 dark:hover:border-white/40"
+                        ? "border-mc-blue dark:border-mc-gold"
+                        : "border-transparent hover:border-mc-blue/40 dark:hover:border-white/40"
                     }`}
                   >
                     {item.thumb ? (
@@ -228,7 +228,7 @@ export default function ViewerClient({
                         className="object-cover"
                       />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-[#1a4f8a] text-xs text-white/70">
+                      <div className="flex h-full w-full items-center justify-center bg-mc-blue text-xs text-white/70">
                         {item.type === "video" ? "Video" : "Photo"}
                       </div>
                     )}

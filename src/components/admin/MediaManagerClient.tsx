@@ -102,7 +102,7 @@ export default function MediaManagerClient({
 
       <div>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-serif text-lg text-[#00356A] dark:text-white">
+          <h2 className="font-extrabold text-lg text-mc-blue dark:text-white">
             All media
           </h2>
           <div className="flex gap-1 rounded-full border border-black/10 p-1 dark:border-white/10">
@@ -113,7 +113,7 @@ export default function MediaManagerClient({
                 onClick={() => setFilter(value)}
                 className={`rounded-full px-3 py-1 text-xs font-medium capitalize transition ${
                   filter === value
-                    ? "bg-[#00356A] text-white dark:bg-[#FFE000] dark:text-[#00356A]"
+                    ? "bg-mc-blue text-white dark:bg-mc-gold dark:text-mc-blue"
                     : "text-gray-600 hover:bg-black/5 dark:text-gray-400 dark:hover:bg-white/10"
                 }`}
               >
@@ -166,7 +166,7 @@ export default function MediaManagerClient({
                     <td className="px-4 py-3">
                       <Link
                         href={`/admin/media/${item.id}`}
-                        className="font-medium text-[#00356A] hover:underline dark:text-white"
+                        className="font-medium text-mc-blue hover:underline dark:text-white"
                       >
                         {item.title}
                       </Link>
@@ -189,7 +189,7 @@ export default function MediaManagerClient({
                       <div className="flex justify-end gap-2">
                         <Link
                           href={`/admin/media/${item.id}`}
-                          className="rounded-full border border-[#00356A]/20 px-3 py-1 text-xs font-medium text-[#00356A] transition hover:bg-black/5 dark:border-white/20 dark:text-white dark:hover:bg-white/10"
+                          className="rounded-full border border-mc-blue/20 px-3 py-1 text-xs font-medium text-mc-blue transition hover:bg-black/5 dark:border-white/20 dark:text-white dark:hover:bg-white/10"
                         >
                           Edit
                         </Link>
@@ -199,8 +199,8 @@ export default function MediaManagerClient({
                           onClick={() => setPublished(item, !item.published)}
                           className={
                             item.published
-                              ? "rounded-full border border-[#00356A]/20 px-3 py-1 text-xs font-medium text-[#00356A] transition hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/20 dark:text-white dark:hover:bg-white/10"
-                              : "rounded-full bg-[#FFE000] px-3 py-1 text-xs font-bold text-[#00356A] transition hover:bg-[#00356A] hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+                              ? "rounded-full border border-mc-blue/20 px-3 py-1 text-xs font-medium text-mc-blue transition hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/20 dark:text-white dark:hover:bg-white/10"
+                              : "rounded-full bg-mc-gold px-3 py-1 text-xs font-bold text-mc-blue transition hover:bg-mc-blue hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
                           }
                         >
                           {pendingId === item.id

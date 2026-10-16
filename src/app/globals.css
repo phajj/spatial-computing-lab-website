@@ -3,11 +3,21 @@
 /* Manual (class-based) dark mode toggle instead of relying on OS preference. */
 @custom-variant dark (&:where(.dark, .dark *));
 
-@theme inline {
-  --font-sans: var(--font-dm-sans);
-  --font-serif: var(--font-dm-serif);
+/* Merrimack College Visual Identity Guidelines (2025). Montserrat stands in for
+   Gotham, as on merrimack.edu; it's loaded in layout.tsx via next/font. */
+:root {
+  --mc-blue: #003767;
+  --mc-gold: #FFDD00;
+  --mc-gray: #82868A;
+
+  --mc-font-sans: var(--font-montserrat), "Helvetica Neue", Arial, sans-serif;
 }
 
-body {
-  font-family: var(--font-dm-sans), sans-serif;
+/* The only font setting in the app: Tailwind applies --font-sans to <html>,
+   and buttons/inputs inherit it. */
+@theme inline {
+  --color-mc-blue: var(--mc-blue);
+  --color-mc-gold: var(--mc-gold);
+  --color-mc-gray: var(--mc-gray);
+  --font-sans: var(--mc-font-sans);
 }

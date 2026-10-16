@@ -7,7 +7,7 @@ export default function FeaturedGrid({ media }: { media: MediaItem[] }) {
     <section className="bg-gray-50 dark:bg-gray-900">
       <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
         <div className="mb-8 flex flex-col gap-2">
-          <h2 className="font-serif text-3xl text-[#00356A] dark:text-white">
+          <h2 className="font-extrabold text-3xl text-mc-blue dark:text-white">
             Featured Experiences
           </h2>
           <p className="text-gray-600 dark:text-gray-300">

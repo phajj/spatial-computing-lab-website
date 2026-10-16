@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 import type { MediaCategory, MediaType } from "@/lib/types";
 
 const inputClass =
-  "w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-[#00356A] focus:outline-none focus:ring-1 focus:ring-[#00356A] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100";
+  "w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-mc-blue focus:outline-none focus:ring-1 focus:ring-mc-blue dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100";
 
 const labelClass =
   "mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300";
@@ -184,7 +184,7 @@ export default function MediaUploadForm({
         onClick={() => fileInputRef.current?.click()}
         className={`mb-6 cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition ${
           dragging
-            ? "border-[#00356A] bg-[#00356A]/5 dark:border-[#FFE000] dark:bg-[#FFE000]/5"
+            ? "border-mc-blue bg-mc-blue/5 dark:border-mc-gold dark:bg-mc-gold/5"
             : "border-gray-300 dark:border-gray-700"
         }`}
       >
@@ -351,7 +351,7 @@ export default function MediaUploadForm({
             type="checkbox"
             checked={featured}
             onChange={(e) => setFeatured(e.target.checked)}
-            className="h-4 w-4 rounded border-gray-300 text-[#00356A] focus:ring-[#00356A]"
+            className="h-4 w-4 rounded border-gray-300 text-mc-blue focus:ring-mc-blue"
           />
           <label
             htmlFor="featured"
@@ -379,7 +379,7 @@ export default function MediaUploadForm({
         <div className="mt-4">
           <div className="h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-800">
             <div
-              className="h-full bg-[#00356A] transition-all dark:bg-[#FFE000]"
+              className="h-full bg-mc-blue transition-all dark:bg-mc-gold"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -392,7 +392,7 @@ export default function MediaUploadForm({
       <button
         type="submit"
         disabled={progress !== null}
-        className="mt-6 w-full rounded-full bg-[#FFE000] px-4 py-2 text-sm font-bold text-[#00356A] transition hover:bg-[#00356A] hover:text-white disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+        className="mt-6 w-full rounded-full bg-mc-gold px-4 py-2 text-sm font-bold text-mc-blue transition hover:bg-mc-blue hover:text-white disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
       >
         {progress !== null ? "Uploading…" : "Upload as draft"}
       </button>

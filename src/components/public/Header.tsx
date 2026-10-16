@@ -7,16 +7,16 @@ import { useState } from "react";
 import ThemeToggle from "./ThemeToggle";
 
 const navLinkClass =
-  "text-sm font-medium text-[#00356A] transition hover:text-[#00356A]/70 dark:text-white dark:hover:text-[#FFE000]";
+  "text-sm font-medium text-mc-blue transition hover:text-mc-blue/70 dark:text-white dark:hover:text-mc-gold";
 
 const mobileLinkClass =
-  "rounded px-2 py-2 text-sm font-medium text-[#00356A] hover:bg-black/5 dark:text-white dark:hover:bg-white/10";
+  "rounded px-2 py-2 text-sm font-medium text-mc-blue hover:bg-black/5 dark:text-white dark:hover:bg-white/10";
 
 const activeButtonClass =
-  "rounded-full bg-[#FFE000] px-4 py-1.5 text-sm font-bold text-[#00356A] transition hover:bg-[#00356A] hover:text-white";
+  "rounded-full bg-mc-gold px-4 py-1.5 text-sm font-bold text-mc-blue transition hover:bg-mc-blue hover:text-white";
 
 const activeMobileButtonClass =
-  "my-1 rounded-full bg-[#FFE000] px-4 py-2 text-center text-sm font-bold text-[#00356A]";
+  "my-1 rounded-full bg-mc-gold px-4 py-2 text-center text-sm font-bold text-mc-blue";
 
 const navItems = [
   { href: "/", label: "Home" },
@@ -33,17 +33,17 @@ export default function Header() {
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-black/5 bg-white shadow-sm dark:border-white/10 dark:bg-[#00356A]">
+    <header className="sticky top-0 z-50 border-b border-black/5 bg-white shadow-sm dark:border-white/10 dark:bg-mc-blue">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
         <Link
           href="/"
           className="flex items-center gap-2"
           onClick={() => setMenuOpen(false)}
         >
-          <span className="rounded bg-[#FFE000] px-2 py-1 text-xs font-bold text-[#00356A]">
+          <span className="rounded bg-mc-gold px-2 py-1 text-xs font-bold text-mc-blue">
             360°
           </span>
-          <span className="font-serif text-lg leading-tight text-[#00356A] dark:text-white sm:text-xl">
+          <span className="font-extrabold text-lg leading-tight text-mc-blue dark:text-white sm:text-xl">
             Spatial Computing Lab
           </span>
         </Link>
@@ -70,9 +70,9 @@ export default function Header() {
             aria-label="Toggle navigation menu"
             aria-expanded={menuOpen}
           >
-            <span className="h-0.5 w-6 bg-[#00356A] dark:bg-white" />
-            <span className="h-0.5 w-6 bg-[#00356A] dark:bg-white" />
-            <span className="h-0.5 w-6 bg-[#00356A] dark:bg-white" />
+            <span className="h-0.5 w-6 bg-mc-blue dark:bg-white" />
+            <span className="h-0.5 w-6 bg-mc-blue dark:bg-white" />
+            <span className="h-0.5 w-6 bg-mc-blue dark:bg-white" />
           </button>
         </div>
       </div>

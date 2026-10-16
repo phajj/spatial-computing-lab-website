@@ -13,16 +13,16 @@ const navItems = [
 ];
 
 const navLinkClass =
-  "rounded px-3 py-1.5 text-sm font-medium text-[#00356A] transition hover:bg-black/5 dark:text-white dark:hover:bg-white/10";
+  "rounded px-3 py-1.5 text-sm font-medium text-mc-blue transition hover:bg-black/5 dark:text-white dark:hover:bg-white/10";
 
 const activeNavLinkClass =
-  "rounded-full bg-[#FFE000] px-3 py-1.5 text-sm font-bold text-[#00356A]";
+  "rounded-full bg-mc-gold px-3 py-1.5 text-sm font-bold text-mc-blue";
 
 const buttonLinkClass =
-  "rounded-full border border-[#00356A]/20 px-3 py-1.5 text-sm font-medium text-[#00356A] transition hover:bg-black/5 dark:border-white/20 dark:text-white dark:hover:bg-white/10";
+  "rounded-full border border-mc-blue/20 px-3 py-1.5 text-sm font-medium text-mc-blue transition hover:bg-black/5 dark:border-white/20 dark:text-white dark:hover:bg-white/10";
 
 const activeButtonLinkClass =
-  "rounded-full bg-[#FFE000] px-3 py-1.5 text-sm font-bold text-[#00356A]";
+  "rounded-full bg-mc-gold px-3 py-1.5 text-sm font-bold text-mc-blue";
 
 export default function AdminNav({ adminEmail }: { adminEmail: string }) {
   const pathname = usePathname();
@@ -40,13 +40,13 @@ export default function AdminNav({ adminEmail }: { adminEmail: string }) {
   }
 
   return (
-    <header className="border-b border-black/5 bg-white dark:border-white/10 dark:bg-[#00356A]">
+    <header className="border-b border-black/5 bg-white dark:border-white/10 dark:bg-mc-blue">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
         <Link href="/admin" className="flex items-center gap-2">
-          <span className="rounded bg-[#FFE000] px-2 py-1 text-xs font-bold text-[#00356A]">
+          <span className="rounded bg-mc-gold px-2 py-1 text-xs font-bold text-mc-blue">
             360°
           </span>
-          <span className="font-serif text-lg leading-tight text-[#00356A] dark:text-white">
+          <span className="font-extrabold text-lg leading-tight text-mc-blue dark:text-white">
             Admin Portal
           </span>
         </Link>

@@ -23,10 +23,10 @@ const TYPE_FILTERS: { value: TypeFilter; label: string }[] = [
 const pillBase =
   "rounded-full px-4 py-1.5 text-sm font-medium transition border";
 
-const pillActive = "border-transparent bg-[#FFE000] font-bold text-[#00356A]";
+const pillActive = "border-transparent bg-mc-gold font-bold text-mc-blue";
 
 const pillInactive =
-  "border-gray-300 text-gray-600 hover:border-[#00356A] hover:text-[#00356A] dark:border-white/20 dark:text-gray-300 dark:hover:border-white dark:hover:text-white";
+  "border-gray-300 text-gray-600 hover:border-mc-blue hover:text-mc-blue dark:border-white/20 dark:text-gray-300 dark:hover:border-white dark:hover:text-white";
 
 export default function GalleryGrid({ media }: { media: MediaItem[] }) {
   const [category, setCategory] = useState<CategoryFilter>("all");
