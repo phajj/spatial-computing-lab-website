@@ -17,7 +17,7 @@ This project is building a web platform for the Merrimack College Spatial Comput
 - Media is served through the same app/port as the rest of the site — it does not get its own separate port.
 - The app is managed by a `systemd` unit (`spatial-lab.service`), which runs `npm start` → `next start`.
 - The site is served over HTTPS. Admins sign in directly at the public HTTPS URL (`/admin`), and `BETTER_AUTH_URL` on the server is that URL.
-- There's no reverse proxy, so never trust `X-Forwarded-For` or similar headers — any client can fake them. Better Auth reads no IP header (`ipAddressHeaders: []`), so the sign-in rate limit is shared by all clients.
+- There's no reverse proxy, so the app reads no client-IP headers such as `X-Forwarded-For` (Better Auth is configured with `ipAddressHeaders: []`). Keep it that way.
 - Admin routes live under `/admin`, `/api/admin` or `/api/auth`. Every admin page must check the session itself (`requireAdmin()` in `src/lib/auth.ts`), not rely on its layout, and every admin API route must check the session and, for writes, the origin (`isTrustedOrigin()` in `src/lib/origin-check.ts`).
 
 **Brand**

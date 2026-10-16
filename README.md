@@ -12,9 +12,11 @@ A web platform for the Merrimack College Spatial Computing Lab that hosts immers
 | Media storage | Local disk on the Merrimack CS server, added through admin portal upload |
 | 360° Viewer | [A-Frame](https://aframe.io) (WebXR) |
 | Styling | [Tailwind CSS](https://tailwindcss.com) |
-| Deployment | Self-hosted on the Merrimack College CS server, running as a `systemd` service (listens directly on port `49168`) |
+| Deployment | Self-hosted on the Merrimack College CS server |
 
-## Setup
+## Local Development Setup
+
+For setting up the production server, see [Deployment](#deployment) instead.
 
 1. **Clone the repo**
    ```bash
@@ -35,12 +37,13 @@ A web platform for the Merrimack College Spatial Computing Lab that hosts immers
    ```
    Then open `.env.local` and add:
    - `DATABASE_URL` — path to the SQLite file, e.g. `file:../data/lab.db` (Prisma resolves this relative to `prisma/schema.prisma`, not the project root, hence the `../`)
-   - `MEDIA_DIR` — absolute path to the directory where 360° media lives on disk, e.g. `/srv/spatial-lab/media`
-   - `BETTER_AUTH_SECRET` — a long random string used to sign session cookies
-   - `BETTER_AUTH_URL` — the URL admins sign in at: `http://localhost:3000` in dev, and the site's public HTTPS URL on the server. Admin write requests are only accepted from this exact origin
+   - `MEDIA_DIR` — absolute path to the directory where uploaded 360° media is stored, e.g. the repo's own `media/` folder (it's gitignored)
+   - `BETTER_AUTH_SECRET` — a long random string used to sign session cookies (`openssl rand -base64 32`)
+   - `BETTER_AUTH_URL` — `http://localhost:3000`. Admin write requests are only accepted from this exact origin
+
 4. **Set up the database**
    ```bash
-   npx prisma migrate dev
+   npm run prisma:migrate
    ```
    This creates the SQLite file and applies the schema (see `prisma/schema.prisma`).
 
@@ -75,17 +78,17 @@ There is no self-service signup — admin accounts (email + password, via Better
   npm run ls-admin
   ```
 
-- **Change an admin's password** — also signs them out of every active session, so a leaked old password can't still be used
+- **Change an admin's password** — also signs them out of every active session
   ```bash
   npm run change-pass -- --email you@merrimack.edu --password <new-password>
   ```
 
-- **Force-reset an admin's password** — unlike `change-pass`, generates and prints a random temporary password rather than taking one you choose; use this for a suspected-compromised account or to issue a fresh temp password without picking one yourself. Also signs them out everywhere and marks the account as needing a password change (`ls-admin` shows this as "RESET REQUIRED" until the admin signs in and changes it themselves at `/admin/change-password`)
+- **Force-reset an admin's password** — unlike `change-pass`, generates and prints a random temporary password rather than taking one you choose; use this when an admin has forgotten their password or needs a fresh temporary one. Also signs them out everywhere and marks the account as needing a password change (`ls-admin` shows this as "RESET REQUIRED" until the admin signs in and changes it themselves at `/admin/change-password`)
   ```bash
   npm run force-reset -- --email you@merrimack.edu
   ```
 
-- **Lock an admin** — blocks sign-in without deleting the account or its history.The command also signs them out of every active session. An already-open browser tab can keep working for up to 60 seconds after this, since admin sessions are cached in a cookie for that long (`session.cookieCache` in `src/lib/auth.ts`) (see Admin Portal below)
+- **Lock an admin** — blocks sign-in without deleting the account or its history, and signs them out of every active session
   ```bash
   npm run lock-admin -- --email you@merrimack.edu
   ```
@@ -95,7 +98,7 @@ There is no self-service signup — admin accounts (email + password, via Better
   npm run unlock-admin -- --email you@merrimack.edu
   ```
 
-- **Delete an admin** — also removes that admin's sessions and password/credential record (cascading delete, see `prisma/schema.prisma`). As with locking, an already-open browser tab can keep working for up to 60 seconds after this, due to the session cookie cache (see Admin Portal below)
+- **Delete an admin** — also removes that admin's sessions and password/credential record (cascading delete, see `prisma/schema.prisma`)
   ```bash
   npm run delete-admin -- --email you@merrimack.edu
   ```
@@ -111,7 +114,7 @@ There is no self-service signup — admin accounts (email + password, via Better
 
 Reached at `/admin` on the public HTTPS site after signing in at `/admin/login`. Everything under `/admin` except `/admin/login` requires a session. Each admin page checks this itself by calling `requireAdmin()` from `src/lib/auth.ts`, which redirects to `/admin/login` if there isn't one; `src/app/admin/(protected)/layout.tsx` does the same check for the nav. Session checks are cached in a signed cookie for 60 seconds (`session.cookieCache` in `src/lib/auth.ts`) so most admin page loads skip the database.
 
-Security hardening:
+Security:
 - **Sign-in and password change are rate-limited** to 5 attempts per minute (`rateLimit` in `src/lib/auth.ts`).
 - **Session cookies** are `Secure` (HTTPS-only) in production, `HttpOnly` and `SameSite=Strict`.
 - **Admin write routes** (`/api/admin/*`) reject any request whose `Origin` header isn't exactly `BETTER_AUTH_URL`'s origin (`src/lib/origin-check.ts`), which stops other websites from submitting changes using a signed-in admin's cookies. Better Auth applies its own origin check to `/api/auth/*`.
@@ -172,7 +175,7 @@ src/
 prisma/
   schema.prisma   ← SQLite schema (media, admins, plus Better Auth's session/account tables)
 scripts/
-  create-admin.ts ← creates an admin account (see Setup step 5)
+  create-admin.ts ← creates an admin account (see Managing Admin Accounts)
   ls-admin.ts     ← lists all admin accounts
   admin-log.ts    ← shows the admin audit log, with account/date filtering (see Managing Admin Accounts)
   change-pass.ts  ← changes an admin's password (see Managing Admin Accounts)
@@ -180,6 +183,8 @@ scripts/
   lock-admin.ts   ← locks an admin out without deleting the account (see Managing Admin Accounts)
   unlock-admin.ts ← restores a locked admin's access (see Managing Admin Accounts)
   delete-admin.ts ← deletes an admin account (see Managing Admin Accounts)
+deploy/
+  spatial-lab.service ← systemd unit for the server (see Deployment)
 data/
   lab.db          ← SQLite database file (not committed — see .gitignore)
 media/            ← 360° photo/video files, served statically (not committed)
@@ -187,22 +192,84 @@ media/            ← 360° photo/video files, served statically (not committed)
 
 > **Not in scope (possible future addition):** Articles and Events pages are not being built at this time and may be added in a future phase.
 
-## Media & Deployment Notes
+## Media Storage
 
-- 360° media lives on disk on the Merrimack CS server, under `MEDIA_DIR`. All media is added through the admin portal's Media Manager, which writes the file to disk and creates its metadata row in SQLite in the same step. Don't copy files into `MEDIA_DIR` by hand — without a metadata row they won't appear anywhere on the site.
+- 360° media lives on disk on the Merrimack CS server, under `MEDIA_DIR`. All media is added through the admin portal's Media Manager, which writes the file to disk and creates its metadata row in SQLite in the same step.
 - The site is deployed with an empty `MEDIA_DIR`; the initial library is uploaded through the admin portal after launch (see [Admin Portal Workflow](#admin-portal-workflow)).
 - Media files are served through `/media/...` (`src/app/media/[...path]/route.ts`). Only files belonging to a **published** media row are served publicly; drafts, and any file in `MEDIA_DIR` without a media row, return 404 unless an admin is signed in.
-- Back up `data/lab.db` regularly (a nightly cron job copying it off-box is enough) — self-hosting means backups are our responsibility, not a platform's.
-- Deployment runs directly on the Merrimack CS server as a `systemd` service at `/projects/spatial-lab`. The app listens directly on port `49168` so the site is reachable at `http://cs.merrimack.edu:49168`. A cleaner URL path may be added later; don't hardcode assumptions about one.
-- The app runs with `npm start` (`next start`). Deploy with `npm install && npx next build`, then restart the service. The `systemd` unit should run:
-  ```ini
-  WorkingDirectory=/projects/spatial-lab
-  Environment=PORT=49168
-  Environment=NODE_ENV=production
-  ExecStart=/usr/bin/npm start
-  ```
-  (Use the output of `which npm` on the server if npm lives somewhere else.) On the server, set `BETTER_AUTH_URL` in `.env.local` to the public HTTPS URL admins sign in at.
-- There's no reverse proxy in front of the app, so `X-Forwarded-For` is ignored (any client can fake it) and all clients share one sign-in rate limit. Nobody can get around that limit, but someone spamming wrong passwords can block every admin from signing in for up to a minute.
+
+## Deployment
+
+The site runs on the Merrimack CS server from `/projects/spatial-lab`, as the `systemd` service `spatial-lab` (a `systemd` service is a program Linux starts at boot and restarts if it crashes). The service runs `npm start` (`next start`), which listens directly on port `49168` — there's no reverse proxy. The unit file is [`deploy/spatial-lab.service`](deploy/spatial-lab.service).
+
+### First-time server setup
+
+1. **Clone the repo and install dependencies** — as the account that will run the app (the unit file assumes `spatial-lab`; change `User=`/`Group=` if it's a different account)
+   ```bash
+   git clone https://github.com/phajj/spatial-computing-lab-website /projects/spatial-lab
+   cd /projects/spatial-lab
+   npm ci
+   ```
+
+2. **Create `.env.local`**
+   ```bash
+   cp .env.example .env.local
+   chmod 600 .env.local
+   ```
+   Then set:
+   - `DATABASE_URL="file:../data/lab.db"` (leave as-is)
+   - `MEDIA_DIR=/projects/spatial-lab/media`
+   - `BETTER_AUTH_SECRET` — a fresh value from `openssl rand -base64 32`. Don't reuse your dev secret
+   - `BETTER_AUTH_URL` — the public HTTPS URL admins sign in at. Production session cookies are `Secure`, so admins always sign in over HTTPS
+
+   `PORT` and `NODE_ENV` are set in the unit file, not here.
+
+3. **Create the data folders, database, and build**
+   ```bash
+   mkdir -p data media
+   npm run prisma:deploy
+   npm run build
+   ```
+   `prisma:deploy` applies the migrations in `prisma/migrations/` without generating new ones — never run `prisma:migrate` on the server.
+
+4. **Create the first admin account**
+   ```bash
+   npm run create-admin -- --email you@merrimack.edu --password <temporary-password>
+   ```
+
+5. **Install and start the service** — check the `ExecStart=` path against `which npm` first
+   ```bash
+   sudo cp deploy/spatial-lab.service /etc/systemd/system/
+   sudo systemctl daemon-reload
+   sudo systemctl enable --now spatial-lab
+   ```
+
+6. **Check it's running** — `systemctl status spatial-lab` should say `active (running)`. Then open the site, and sign in at `/admin`.
+
+### Deploying an update
+
+```bash
+cd /projects/spatial-lab
+sudo systemctl stop spatial-lab
+cp data/lab.db ~/lab.db.$(date +%F-%H%M)   # backup in case a migration goes wrong
+git pull
+npm ci
+npm run prisma:deploy
+npm run build
+sudo systemctl start spatial-lab
+```
+
+An update takes about a minute. The service is stopped first so dependencies and the build aren't replaced while the app is serving requests, and so the database backup is consistent.
+
+If you change `deploy/spatial-lab.service`, copy it into `/etc/systemd/system/` again and run `sudo systemctl daemon-reload` before starting.
+
+### Logs and service commands
+
+```bash
+journalctl -u spatial-lab -f             # follow live logs
+journalctl -u spatial-lab --since today  # today's logs
+sudo systemctl restart spatial-lab       # e.g. after editing .env.local
+```
 
 ## Technical Context
 
