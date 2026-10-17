@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 49168",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 49168",
     "lint": "eslint",
     "test": "tsx --test \"src/**/*.test.ts\"",
     "postinstall": "prisma generate",

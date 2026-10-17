@@ -39,7 +39,7 @@ For setting up the production server, see [Deployment](#deployment) instead.
    - `DATABASE_URL` — path to the SQLite file, e.g. `file:../data/lab.db` (Prisma resolves this relative to `prisma/schema.prisma`, not the project root, hence the `../`)
    - `MEDIA_DIR` — absolute path to the directory where uploaded 360° media is stored, e.g. the repo's own `media/` folder (it's gitignored)
    - `BETTER_AUTH_SECRET` — a long random string used to sign session cookies (`openssl rand -base64 32`)
-   - `BETTER_AUTH_URL` — `http://localhost:3000`. Admin write requests are only accepted from this exact origin
+   - `BETTER_AUTH_URL` — `http://localhost:49168`. Admin write requests are only accepted from this exact origin
 
 4. **Set up the database**
    ```bash
@@ -57,7 +57,7 @@ For setting up the production server, see [Deployment](#deployment) instead.
    ```bash
    npm run dev
    ```
-   Open [http://localhost:3000](http://localhost:3000) in your browser.
+   Open [http://localhost:49168](http://localhost:49168) in your browser.
 
 7. **Run the tests**
    ```bash

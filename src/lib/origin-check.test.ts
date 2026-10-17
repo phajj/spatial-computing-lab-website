@@ -22,7 +22,7 @@ test("isTrustedOrigin accepts only the exact BETTER_AUTH_URL origin", () => {
     "https://cs.merrimack.edu:49168/admin",
     "https://cs.merrimack.edu.evil.com:49168",
     "https://evil.example",
-    "http://localhost:3000",
+    "http://localhost:49168",
     "null",
     "",
     null,
@@ -37,15 +37,15 @@ test("isTrustedOrigin ignores a path in BETTER_AUTH_URL", () => {
 });
 
 test("isTrustedOrigin allows localhost only when BETTER_AUTH_URL is localhost", () => {
-  process.env.BETTER_AUTH_URL = "http://localhost:3000";
-  assert.equal(isTrustedOrigin("http://localhost:3000"), true);
+  process.env.BETTER_AUTH_URL = "http://localhost:49168";
+  assert.equal(isTrustedOrigin("http://localhost:49168"), true);
   assert.equal(isTrustedOrigin("http://localhost:8080"), false);
-  assert.equal(isTrustedOrigin("http://127.0.0.1:3000"), false);
+  assert.equal(isTrustedOrigin("http://127.0.0.1:49168"), false);
 });
 
 test("isTrustedOrigin rejects everything when BETTER_AUTH_URL is missing or invalid", () => {
   delete process.env.BETTER_AUTH_URL;
-  assert.equal(isTrustedOrigin("http://localhost:3000"), false);
+  assert.equal(isTrustedOrigin("http://localhost:49168"), false);
   process.env.BETTER_AUTH_URL = "not a url";
-  assert.equal(isTrustedOrigin("http://localhost:3000"), false);
+  assert.equal(isTrustedOrigin("http://localhost:49168"), false);
 });
