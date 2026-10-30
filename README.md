@@ -40,6 +40,7 @@ For setting up the production server, see [Deployment](#deployment) instead.
    - `MEDIA_DIR` — absolute path to the directory where uploaded 360° media is stored, e.g. the repo's own `media/` folder (it's gitignored)
    - `BETTER_AUTH_SECRET` — a long random string used to sign session cookies (`openssl rand -base64 32`)
    - `BETTER_AUTH_URL` — `http://localhost:49168`. Admin write requests are only accepted from this exact origin
+   - `COOKIE_SECURE` — leave as `false` for local dev (plain HTTP)
 
 4. **Set up the database**
    ```bash
@@ -116,7 +117,7 @@ Reached at `/admin` on the public HTTPS site after signing in at `/admin/login`.
 
 Security:
 - **Sign-in and password change are rate-limited** to 5 attempts per minute (`rateLimit` in `src/lib/auth.ts`).
-- **Session cookies** are `Secure` (HTTPS-only) in production, `HttpOnly` and `SameSite=Strict`.
+- **Session cookies** are `HttpOnly` and `SameSite=Strict`. They're `Secure` (HTTPS-only) only when `COOKIE_SECURE=true`.
 - **Admin write routes** (`/api/admin/*`) reject any request whose `Origin` header isn't exactly `BETTER_AUTH_URL`'s origin (`src/lib/origin-check.ts`), which stops other websites from submitting changes using a signed-in admin's cookies. Better Auth applies its own origin check to `/api/auth/*`.
 - New admin pages must call `requireAdmin()`, and new admin API routes must check both the origin and the session themselves, under `/admin`, `/api/admin` or `/api/auth`.
 
@@ -220,7 +221,8 @@ The site runs on the Merrimack CS server from `/projects/spatial-lab`, as the `s
    - `DATABASE_URL="file:../data/lab.db"` (leave as-is)
    - `MEDIA_DIR=/projects/spatial-lab/media`
    - `BETTER_AUTH_SECRET` — a fresh value from `openssl rand -base64 32`. Don't reuse your dev secret
-   - `BETTER_AUTH_URL` — the public HTTPS URL admins sign in at. Production session cookies are `Secure`, so admins always sign in over HTTPS
+   - `BETTER_AUTH_URL` — the public URL admins sign in at, e.g. `http://cs.merrimack.edu:49168`
+   - `COOKIE_SECURE` — whether session cookies get the `Secure` attribute. Only `1`, `true`, `yes` or `on` (any case) turn it on; anything else, or leaving it unset, means off. Keep it `false` while the site is plain HTTP: browsers never send a `Secure` cookie back over HTTP, so sign-in looks like it works and then bounces you back to the login page. **Switch it to `true` (and restart the service) once HTTPS is enabled.** If HTTPS is later handled by a reverse proxy in front of the app, `true` is still correct, because the browser only cares about its own connection to the proxy
 
    `PORT` and `NODE_ENV` are set in the unit file, not here.
 
