@@ -6,6 +6,12 @@ import { redirect } from "next/navigation";
 import { prisma } from "./db";
 import { logAdminAction } from "./audit-log";
 
+// Set to true once the site is served over HTTPS: while it's plain HTTP,
+// browsers never send a Secure cookie back, so sign-in silently fails.
+const COOKIE_SECURE = ["1", "true", "yes", "on"].includes(
+  (process.env.COOKIE_SECURE ?? "").trim().toLowerCase()
+);
+
 // Server-side Better Auth instance. The Prisma "Admin" model stands in
 // for Better Auth's default "user" model (see prisma/schema.prisma),
 // since this app only ever has a handful of known lab-staff accounts.
@@ -38,8 +44,9 @@ export const auth = betterAuth({
     ipAddress: {
       ipAddressHeaders: [],
     },
-    // Secure cookies need HTTPS, which production has and dev doesn't.
-    useSecureCookies: process.env.NODE_ENV === "production",
+    // Drives the Secure attribute (and __Secure- name prefix) on every
+    // cookie Better Auth sets or clears, so set and delete always match.
+    useSecureCookies: COOKIE_SECURE,
     defaultCookieAttributes: {
       httpOnly: true,
       sameSite: "strict",
