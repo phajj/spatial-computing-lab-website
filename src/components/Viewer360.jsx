@@ -9,6 +9,61 @@ const ZOOM_MIN = 1;
 const ZOOM_MAX = 4;
 const ZOOM_STEP = 0.1;
 
+// A-Frame's look-controls deliberately limits touch drags to turning left and
+// right. This adds the up/down half, using the same sensitivity and the same
+// reverseTouchDrag setting, by tilting look-controls' own pitch object.
+function registerTouchPitch(AFRAME) {
+  if (AFRAME.components["touch-pitch"]) return;
+  AFRAME.registerComponent("touch-pitch", {
+    dependencies: ["look-controls"],
+
+    init() {
+      this.lastY = null;
+      this.onTouchStart = (event) => {
+        this.lastY = event.touches.length === 1 ? event.touches[0].pageY : null;
+      };
+      this.onTouchMove = (event) => {
+        if (this.lastY === null || event.touches.length !== 1) return;
+        const lookControls = this.el.components["look-controls"];
+        const canvas = this.el.sceneEl.canvas;
+        const y = event.touches[0].pageY;
+        const delta = (2 * Math.PI * (y - this.lastY)) / canvas.clientWidth;
+        const direction = lookControls.data.reverseTouchDrag ? -1 : 1;
+        const rotation = lookControls.pitchObject.rotation;
+        rotation.x = Math.max(
+          -Math.PI / 2,
+          Math.min(Math.PI / 2, rotation.x + delta * 0.5 * direction)
+        );
+        this.lastY = y;
+      };
+      this.onTouchEnd = () => {
+        this.lastY = null;
+      };
+    },
+
+    play() {
+      const canvas = this.el.sceneEl.canvas;
+      if (!canvas) {
+        this.el.sceneEl.addEventListener("render-target-loaded", () => this.play(), {
+          once: true,
+        });
+        return;
+      }
+      canvas.addEventListener("touchstart", this.onTouchStart, { passive: true });
+      canvas.addEventListener("touchmove", this.onTouchMove, { passive: true });
+      canvas.addEventListener("touchend", this.onTouchEnd);
+    },
+
+    pause() {
+      const canvas = this.el.sceneEl.canvas;
+      if (!canvas) return;
+      canvas.removeEventListener("touchstart", this.onTouchStart);
+      canvas.removeEventListener("touchmove", this.onTouchMove);
+      canvas.removeEventListener("touchend", this.onTouchEnd);
+    },
+  });
+}
+
 // A-Frame touches `window`/`navigator` as soon as it's imported, so it can only
 // be loaded in the browser. Importing it inside an effect (instead of at the
 // top of the file) keeps this component safe to render on the server.
@@ -22,6 +77,7 @@ export default function Viewer360({ media, muted, setMuted, reverseDrag, setReve
   useEffect(() => {
     let cancelled = false;
     import("aframe").then(() => {
+      registerTouchPitch(window.AFRAME);
       if (!cancelled) setAframeReady(true);
     });
     return () => {
@@ -93,17 +149,27 @@ export default function Viewer360({ media, muted, setMuted, reverseDrag, setReve
           into the DOM outside React's control. vr-mode-ui="enabled: false" is
           supposed to suppress it, but it still renders in some cases and clicking
           it engages A-Frame's own fullscreen simulation, which hides the rest of
-          this overlay. Force it off so our custom button below is the only one. */}
+          this overlay. Force it off so our custom button below is the only one.
+          touch-action: none stops a vertical drag on the scene from scrolling
+          the page instead of tilting the view. */}
       <style jsx global>{`
         .a-enter-vr,
         .a-enter-ar,
         .a-orientation-modal {
           display: none !important;
         }
+        .a-canvas {
+          touch-action: none;
+        }
       `}</style>
+      {/* device-orientation-permission-ui is A-Frame's built-in popup. Over
+          plain HTTP it can only say "Access this site over HTTPS", on every
+          load. Re-enable it once the site is on HTTPS: iPhones need its
+          "Allow" button before they'll share the gyroscope. */}
       <a-scene
         embedded
         vr-mode-ui="enabled: false"
+        device-orientation-permission-ui="enabled: false"
         loading-screen={loadingScreen}
       >
         {media.type === "video" && (
@@ -130,7 +196,8 @@ export default function Viewer360({ media, muted, setMuted, reverseDrag, setReve
 
         <a-entity
           camera={`zoom: ${zoom}`}
-          look-controls={`reverseMouseDrag: ${reverseDrag}`}
+          look-controls={`reverseMouseDrag: ${reverseDrag}; reverseTouchDrag: ${reverseDrag}`}
+          touch-pitch
           wasd-controls="enabled: false"
           position="0 1.6 0"
         />
@@ -174,18 +241,22 @@ export default function Viewer360({ media, muted, setMuted, reverseDrag, setReve
 
       <div className="absolute right-4 top-1/2 z-[10000] flex -translate-y-1/2 flex-col items-center gap-2 rounded-full bg-black/60 px-3 py-3 text-xs font-bold uppercase tracking-wider text-white">
         <span>Zoom</span>
-        <div className="relative h-28 w-8">
-          <input
-            type="range"
-            min={ZOOM_MIN}
-            max={ZOOM_MAX}
-            step={ZOOM_STEP}
-            value={zoom}
-            onChange={(event) => setZoom(Number(event.target.value))}
-            aria-label="Zoom level"
-            className="absolute left-1/2 top-1/2 h-1.5 w-24 -translate-x-1/2 -translate-y-1/2 -rotate-90 cursor-pointer appearance-none rounded-full bg-white/30 accent-mc-gold"
-          />
-        </div>
+        {/* A natively vertical slider (writing-mode, with direction: rtl putting
+            the minimum at the bottom) rather than a horizontal one rotated with
+            CSS: phones can't drag a rotated slider, only tap it. touch-none
+            keeps the drag from scrolling the page. */}
+        <input
+          type="range"
+          min={ZOOM_MIN}
+          max={ZOOM_MAX}
+          step={ZOOM_STEP}
+          value={zoom}
+          onChange={(event) => setZoom(Number(event.target.value))}
+          aria-label="Zoom level"
+          aria-orientation="vertical"
+          className="h-28 w-6 cursor-pointer touch-none accent-mc-gold [direction:rtl] [writing-mode:vertical-lr]"
+        />
+
       </div>
 
       <button
