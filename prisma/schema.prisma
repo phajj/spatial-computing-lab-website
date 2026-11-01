@@ -39,6 +39,20 @@ model Media {
   @@map("media")
 }
 
+// An album's label (study_abroad / campus_events), which new media in the
+// album defaults to. Media points at an album by name through
+// `media.collection` rather than a foreign key, so every existing query on
+// that column keeps working unchanged.
+model Album {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  category  String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("albums")
+}
+
 // Better Auth's own tables (session-based email + password auth).
 // The admin-facing identity fields (email, password) live here as
 // Better Auth expects, rather than as a hand-rolled password_hash column.

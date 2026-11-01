@@ -1,4 +1,5 @@
 // src/app/admin/(protected)/(guarded)/media/page.tsx
+import { getAlbumOptions } from "@/lib/albums";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import MediaManagerClient from "@/components/admin/MediaManagerClient";
@@ -10,7 +11,7 @@ const LIST_LIMIT = 200;
 export default async function MediaManagerPage() {
   await requireAdmin();
 
-  const [recent, collectionRows] = await Promise.all([
+  const [recent, albums, albumCounts] = await Promise.all([
     prisma.media.findMany({
       orderBy: { createdAt: "desc" },
       take: LIST_LIMIT,
@@ -24,20 +25,20 @@ export default async function MediaManagerPage() {
         createdAt: true,
       },
     }),
-    // Distinct album/collection names already in use, to populate the
-    // upload form's dropdown so staff can reuse an existing album instead
-    // of retyping (and risking a typo that splits one album into two).
-    prisma.media.findMany({
+    // Existing albums populate the upload form's dropdown, so staff reuse
+    // an album instead of retyping it (and risking a typo that splits one
+    // album into two), and list in the Albums panel with their labels.
+    getAlbumOptions(),
+    prisma.media.groupBy({
+      by: ["collection"],
       where: { collection: { not: null } },
-      distinct: ["collection"],
-      select: { collection: true },
-      orderBy: { collection: "asc" },
+      _count: { _all: true },
     }),
   ]);
 
-  const collections = collectionRows
-    .map((row) => row.collection)
-    .filter((name): name is string => Boolean(name));
+  const itemCounts = new Map(
+    albumCounts.map((row) => [row.collection, row._count._all])
+  );
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
@@ -56,7 +57,10 @@ export default async function MediaManagerPage() {
             ...item,
             createdAt: item.createdAt.toISOString(),
           }))}
-          initialCollections={collections}
+          initialAlbums={albums.map((album) => ({
+            ...album,
+            itemCount: itemCounts.get(album.name) ?? 0,
+          }))}
         />
       </div>
     </div>

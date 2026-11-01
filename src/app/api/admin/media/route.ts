@@ -1,6 +1,7 @@
 // src/app/api/admin/media/route.ts
 import fs from "node:fs/promises";
 import { NextRequest, NextResponse } from "next/server";
+import { CATEGORIES, ensureAlbum, isCategory } from "@/lib/albums";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import {
@@ -17,7 +18,6 @@ import type { MediaCategory, MediaType } from "@/lib/types";
 const MAX_FILE_BYTES = 500 * 1024 * 1024;
 
 const TYPES: MediaType[] = ["photo", "video"];
-const CATEGORIES: MediaCategory[] = ["study_abroad", "campus_events"];
 
 function readField(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -51,8 +51,10 @@ export async function POST(req: NextRequest) {
   const file = formData.get("file");
   const title = readField(formData, "title");
   const type = readField(formData, "type");
-  const category = readField(formData, "category") || null;
+  let category = readField(formData, "category") || null;
   const collection = readField(formData, "collection") || null;
+  // Only used when this upload creates a new album: that album's label.
+  const albumCategory = readField(formData, "albumCategory") || null;
   const description = readField(formData, "description") || null;
   const location = readField(formData, "location") || null;
   const dateInput = readField(formData, "date");
@@ -73,6 +75,15 @@ export async function POST(req: NextRequest) {
   }
   if (category && !CATEGORIES.includes(category as MediaCategory)) {
     return NextResponse.json({ error: "Invalid category." }, { status: 400 });
+  }
+  if (albumCategory && !isCategory(albumCategory)) {
+    return NextResponse.json({ error: "Invalid album label." }, { status: 400 });
+  }
+
+  // An item with no category of its own takes its album's label.
+  if (collection && !category) {
+    const album = await prisma.album.findUnique({ where: { name: collection } });
+    category = album?.category ?? albumCategory;
   }
   if (file.size > MAX_FILE_BYTES) {
     return NextResponse.json(
@@ -130,26 +141,32 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const media = await prisma.media.create({
-      data: {
-        title,
-        src: destination.publicSrc,
-        thumb: thumbDestination?.publicSrc ?? null,
-        viewYaw: thumbnail?.viewYaw ?? null,
-        viewPitch: thumbnail?.viewPitch ?? null,
-        viewTime: thumbnail?.viewTime ?? null,
-        type,
-        category,
-        collection,
-        description,
-        location,
-        date,
-        featured,
-        hotspots,
-        published: false,
-      },
+    const { media, album } = await prisma.$transaction(async (tx) => {
+      const album = collection
+        ? await ensureAlbum(tx, collection, (albumCategory ?? category) as MediaCategory | null)
+        : null;
+      const media = await tx.media.create({
+        data: {
+          title,
+          src: destination.publicSrc,
+          thumb: thumbDestination?.publicSrc ?? null,
+          viewYaw: thumbnail?.viewYaw ?? null,
+          viewPitch: thumbnail?.viewPitch ?? null,
+          viewTime: thumbnail?.viewTime ?? null,
+          type,
+          category,
+          collection,
+          description,
+          location,
+          date,
+          featured,
+          hotspots,
+          published: false,
+        },
+      });
+      return { media, album };
     });
-    return NextResponse.json({ media }, { status: 201 });
+    return NextResponse.json({ media, album }, { status: 201 });
   } catch (error) {
     // Don't leave orphaned files on disk if the metadata row failed.
     await fs.unlink(destination.absPath).catch(() => {});

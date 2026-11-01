@@ -1,12 +1,12 @@
 // src/app/api/admin/media/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import { CATEGORIES, ensureAlbum, isCategory } from "@/lib/albums";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { isTrustedOrigin } from "@/lib/origin-check";
 import type { MediaCategory, MediaType } from "@/lib/types";
 
 const TYPES: MediaType[] = ["photo", "video"];
-const CATEGORIES: MediaCategory[] = ["study_abroad", "campus_events"];
 
 function readOptionalString(body: Record<string, unknown>, key: string) {
   const value = body[key];
@@ -79,6 +79,13 @@ export async function PATCH(
     data.collection = readOptionalString(body, "collection");
   }
 
+  // Only used when this edit moves the item into a new album: that album's
+  // label.
+  const albumCategory = readOptionalString(body, "albumCategory");
+  if (albumCategory && !isCategory(albumCategory)) {
+    return NextResponse.json({ error: "Invalid album label." }, { status: 400 });
+  }
+
   if ("description" in body) {
     data.description = readOptionalString(body, "description");
   }
@@ -135,6 +142,13 @@ export async function PATCH(
     data.hotspots = hotspotsInput;
   }
 
-  const media = await prisma.media.update({ where: { id }, data });
+  const collection = data.collection as string | null | undefined;
+  const media = await prisma.$transaction(async (tx) => {
+    if (collection) {
+      const category = (data.category ?? existing.category) as MediaCategory | null;
+      await ensureAlbum(tx, collection, isCategory(albumCategory) ? albumCategory : category);
+    }
+    return tx.media.update({ where: { id }, data });
+  });
   return NextResponse.json({ media });
 }

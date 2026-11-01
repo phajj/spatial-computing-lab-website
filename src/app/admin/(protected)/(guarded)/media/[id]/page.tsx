@@ -1,5 +1,6 @@
 // src/app/admin/(protected)/(guarded)/media/[id]/page.tsx
 import { notFound } from "next/navigation";
+import { getAlbumOptions } from "@/lib/albums";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import MediaEditForm from "@/components/admin/MediaEditForm";
@@ -14,23 +15,14 @@ export default async function MediaEditPage({
 
   const { id } = await params;
 
-  const [media, collectionRows] = await Promise.all([
+  const [media, albums] = await Promise.all([
     prisma.media.findUnique({ where: { id } }),
-    prisma.media.findMany({
-      where: { collection: { not: null } },
-      distinct: ["collection"],
-      select: { collection: true },
-      orderBy: { collection: "asc" },
-    }),
+    getAlbumOptions(),
   ]);
 
   if (!media) {
     notFound();
   }
-
-  const collections = collectionRows
-    .map((row) => row.collection)
-    .filter((name): name is string => Boolean(name));
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
@@ -63,7 +55,7 @@ export default async function MediaEditPage({
             published: media.published,
             hotspots: media.hotspots,
           }}
-          collections={collections}
+          albums={albums}
         />
       </div>
     </div>

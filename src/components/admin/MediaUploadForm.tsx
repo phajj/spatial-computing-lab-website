@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import Viewer360 from "@/components/Viewer360";
 import ThumbnailPreview from "@/components/admin/ThumbnailPreview";
 import { makeRandomThumbnail, type PickedView } from "@/lib/random-thumbnail";
-import type { MediaCategory, MediaType } from "@/lib/types";
+import type { AlbumOption, MediaCategory, MediaType } from "@/lib/types";
 
 const inputClass =
   "w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-mc-blue focus:outline-none focus:ring-1 focus:ring-mc-blue dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100";
@@ -32,11 +32,11 @@ export type UploadedMedia = {
 };
 
 export default function MediaUploadForm({
-  collections,
+  albums,
   onUploaded,
 }: {
-  collections: string[];
-  onUploaded?: (media: UploadedMedia) => void;
+  albums: AlbumOption[];
+  onUploaded?: (media: UploadedMedia, album: AlbumOption | null) => void;
 }) {
   const [file, setFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -48,6 +48,24 @@ export default function MediaUploadForm({
   // when NEW_ALBUM is chosen.
   const [collectionChoice, setCollectionChoice] = useState("");
   const [newCollection, setNewCollection] = useState("");
+  const [newAlbumCategory, setNewAlbumCategory] = useState<MediaCategory | "">("");
+
+  // Picking an album fills in Category with that album's label; staff can
+  // still change Category for this one item afterwards.
+  function chooseAlbum(value: string) {
+    setCollectionChoice(value);
+    if (value === NEW_ALBUM) {
+      setCategory(newAlbumCategory);
+      return;
+    }
+    const album = albums.find((a) => a.name === value);
+    if (album) setCategory(album.category ?? "");
+  }
+
+  function chooseNewAlbumCategory(value: MediaCategory | "") {
+    setNewAlbumCategory(value);
+    setCategory(value);
+  }
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
   const [date, setDate] = useState("");
@@ -116,6 +134,7 @@ export default function MediaUploadForm({
     setCategory("");
     setCollectionChoice("");
     setNewCollection("");
+    setNewAlbumCategory("");
     setDescription("");
     setLocation("");
     setDate("");
@@ -159,6 +178,9 @@ export default function MediaUploadForm({
     formData.set("type", type);
     formData.set("category", category);
     formData.set("collection", collectionValue);
+    if (collectionChoice === NEW_ALBUM) {
+      formData.set("albumCategory", newAlbumCategory);
+    }
     formData.set("description", description.trim());
     formData.set("location", location.trim());
     formData.set("date", date);
@@ -195,7 +217,7 @@ export default function MediaUploadForm({
     };
     xhr.onload = () => {
       setProgress(null);
-      let body: { media?: UploadedMedia; error?: string } = {};
+      let body: { media?: UploadedMedia; album?: AlbumOption | null; error?: string } = {};
       try {
         body = JSON.parse(xhr.responseText);
       } catch {
@@ -208,7 +230,7 @@ export default function MediaUploadForm({
       setSuccess(
         `"${body.media.title}" uploaded as a draft. Click Publish in the list below when it's ready to go live, or click its title to change the thumbnail first.`
       );
-      onUploaded?.(body.media);
+      onUploaded?.(body.media, body.album ?? null);
       resetForm();
     };
     xhr.onerror = () => {
@@ -347,6 +369,50 @@ export default function MediaUploadForm({
         </div>
 
         <div>
+          <label htmlFor="collection" className={labelClass}>
+            Album
+          </label>
+          <select
+            id="collection"
+            value={collectionChoice}
+            onChange={(e) => chooseAlbum(e.target.value)}
+            className={inputClass}
+          >
+            <option value="">— None —</option>
+            {albums.map((album) => (
+              <option key={album.id} value={album.name}>
+                {album.name}
+              </option>
+            ))}
+            <option value={NEW_ALBUM}>+ New album…</option>
+          </select>
+          {collectionChoice === NEW_ALBUM && (
+            <>
+              <input
+                aria-label="New album name"
+                placeholder="Greece Spring 2026"
+                value={newCollection}
+                onChange={(e) => setNewCollection(e.target.value)}
+                className={`${inputClass} mt-2`}
+              />
+              <select
+                aria-label="New album label"
+                value={newAlbumCategory}
+                onChange={(e) => chooseNewAlbumCategory(e.target.value as MediaCategory | "")}
+                className={`${inputClass} mt-2`}
+              >
+                <option value="">Album label: none</option>
+                {CATEGORY_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    Album label: {opt.label}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
+        </div>
+
+        <div>
           <label htmlFor="category" className={labelClass}>
             Category
           </label>
@@ -365,35 +431,9 @@ export default function MediaUploadForm({
               </option>
             ))}
           </select>
-        </div>
-
-        <div>
-          <label htmlFor="collection" className={labelClass}>
-            Album
-          </label>
-          <select
-            id="collection"
-            value={collectionChoice}
-            onChange={(e) => setCollectionChoice(e.target.value)}
-            className={inputClass}
-          >
-            <option value="">— None —</option>
-            {collections.map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-            <option value={NEW_ALBUM}>+ New album…</option>
-          </select>
-          {collectionChoice === NEW_ALBUM && (
-            <input
-              aria-label="New album name"
-              placeholder="Greece Spring 2026"
-              value={newCollection}
-              onChange={(e) => setNewCollection(e.target.value)}
-              className={`${inputClass} mt-2`}
-            />
-          )}
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            Defaults to the album&apos;s label.
+          </p>
         </div>
 
         <div>

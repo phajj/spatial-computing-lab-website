@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import Viewer360 from "@/components/Viewer360";
 import ThumbnailPreview from "@/components/admin/ThumbnailPreview";
 import type { PickedView } from "@/lib/random-thumbnail";
-import type { MediaCategory, MediaType } from "@/lib/types";
+import type { AlbumOption, MediaCategory, MediaType } from "@/lib/types";
 
 const inputClass =
   "w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-mc-blue focus:outline-none focus:ring-1 focus:ring-mc-blue dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100";
@@ -42,10 +42,10 @@ type EditableMedia = {
 
 export default function MediaEditForm({
   media,
-  collections,
+  albums,
 }: {
   media: EditableMedia;
-  collections: string[];
+  albums: AlbumOption[];
 }) {
   const router = useRouter();
   const [title, setTitle] = useState(media.title);
@@ -54,13 +54,31 @@ export default function MediaEditForm({
     (media.category as MediaCategory) ?? ""
   );
   const knownCollection =
-    media.collection && collections.includes(media.collection);
+    media.collection && albums.some((album) => album.name === media.collection);
   const [collectionChoice, setCollectionChoice] = useState(
     media.collection ? (knownCollection ? media.collection : NEW_ALBUM) : ""
   );
   const [newCollection, setNewCollection] = useState(
     media.collection && !knownCollection ? media.collection : ""
   );
+  const [newAlbumCategory, setNewAlbumCategory] = useState<MediaCategory | "">("");
+
+  // Picking an album fills in Category with that album's label; staff can
+  // still change Category for this one item afterwards.
+  function chooseAlbum(value: string) {
+    setCollectionChoice(value);
+    if (value === NEW_ALBUM) {
+      setCategory(newAlbumCategory);
+      return;
+    }
+    const album = albums.find((a) => a.name === value);
+    if (album) setCategory(album.category ?? "");
+  }
+
+  function chooseNewAlbumCategory(value: MediaCategory | "") {
+    setNewAlbumCategory(value);
+    setCategory(value);
+  }
   const [description, setDescription] = useState(media.description ?? "");
   const [location, setLocation] = useState(media.location ?? "");
   const [date, setDate] = useState(media.date);
@@ -162,6 +180,7 @@ export default function MediaEditForm({
           type,
           category,
           collection: collectionValue,
+          albumCategory: collectionChoice === NEW_ALBUM ? newAlbumCategory : "",
           description: description.trim(),
           location: location.trim(),
           date,
@@ -314,6 +333,50 @@ export default function MediaEditForm({
         </div>
 
         <div>
+          <label htmlFor="collection" className={labelClass}>
+            Album
+          </label>
+          <select
+            id="collection"
+            value={collectionChoice}
+            onChange={(e) => chooseAlbum(e.target.value)}
+            className={inputClass}
+          >
+            <option value="">— None —</option>
+            {albums.map((album) => (
+              <option key={album.id} value={album.name}>
+                {album.name}
+              </option>
+            ))}
+            <option value={NEW_ALBUM}>+ New album…</option>
+          </select>
+          {collectionChoice === NEW_ALBUM && (
+            <>
+              <input
+                aria-label="New album name"
+                placeholder="Greece Spring 2026"
+                value={newCollection}
+                onChange={(e) => setNewCollection(e.target.value)}
+                className={`${inputClass} mt-2`}
+              />
+              <select
+                aria-label="New album label"
+                value={newAlbumCategory}
+                onChange={(e) => chooseNewAlbumCategory(e.target.value as MediaCategory | "")}
+                className={`${inputClass} mt-2`}
+              >
+                <option value="">Album label: none</option>
+                {CATEGORY_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    Album label: {opt.label}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
+        </div>
+
+        <div>
           <label htmlFor="category" className={labelClass}>
             Category
           </label>
@@ -330,35 +393,9 @@ export default function MediaEditForm({
               </option>
             ))}
           </select>
-        </div>
-
-        <div>
-          <label htmlFor="collection" className={labelClass}>
-            Album
-          </label>
-          <select
-            id="collection"
-            value={collectionChoice}
-            onChange={(e) => setCollectionChoice(e.target.value)}
-            className={inputClass}
-          >
-            <option value="">— None —</option>
-            {collections.map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-            <option value={NEW_ALBUM}>+ New album…</option>
-          </select>
-          {collectionChoice === NEW_ALBUM && (
-            <input
-              aria-label="New album name"
-              placeholder="Greece Spring 2026"
-              value={newCollection}
-              onChange={(e) => setNewCollection(e.target.value)}
-              className={`${inputClass} mt-2`}
-            />
-          )}
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            Defaults to the album&apos;s label.
+          </p>
         </div>
 
         <div>
