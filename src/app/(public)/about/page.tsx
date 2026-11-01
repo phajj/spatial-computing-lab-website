@@ -14,7 +14,7 @@ const people: { name: string; role: string; photo?: string }[] = [
     photo: "/team/BBenedict.jpeg", },
   {
     name: "Peter Hajj",
-    role: "Undergraduate Lab Manager",
+    role: "Undergraduate Lab Manager\n& Web Developer",
     photo: "/team/PeterHajj.jpg",
   },
 ];
@@ -80,7 +80,7 @@ export default function AboutPage() {
                 <p className="font-extrabold text-lg text-mc-blue dark:text-white">
                   {person.name}
                 </p>
-                <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                <p className="whitespace-pre-line text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                   {person.role}
                 </p>
               </div>
