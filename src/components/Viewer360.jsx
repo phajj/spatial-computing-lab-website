@@ -352,26 +352,6 @@ export default function Viewer360({
         </button>
       </div>
 
-      {!pickerMode && (
-        <div className="absolute right-4 top-1/2 z-[10000] flex -translate-y-1/2 flex-col items-center gap-2 rounded-full bg-black/60 px-3 py-3 text-xs font-bold uppercase tracking-wider text-white">
-          <span>Zoom</span>
-          {/* A natively vertical slider (writing-mode, with direction: rtl putting
-              the minimum at the bottom) rather than a horizontal one rotated with
-              CSS: phones can't drag a rotated slider, only tap it. touch-none
-              keeps the drag from scrolling the page. */}
-          <input
-            type="range"
-            min={ZOOM_MIN}
-            max={ZOOM_MAX}
-            step={ZOOM_STEP}
-            value={zoom}
-            onChange={(event) => setZoom(Number(event.target.value))}
-            aria-label="Zoom level"
-            aria-orientation="vertical"
-            className="h-28 w-6 cursor-pointer touch-none accent-mc-gold [direction:rtl] [writing-mode:vertical-lr]"
-          />
-        </div>
-      )}
 
       {pickerMode && (
         <div className="absolute bottom-16 left-1/2 z-[10000] flex w-[min(90%,32rem)] -translate-x-1/2 flex-col items-center gap-3 text-xs font-bold uppercase tracking-wider text-white">
@@ -401,30 +381,52 @@ export default function Viewer360({
         </div>
       )}
 
-      <button
-        type="button"
-        onClick={toggleFullscreen}
-        aria-label={isImmersive ? "Exit fullscreen" : "Enter fullscreen"}
-        className="absolute bottom-4 right-4 z-[10000] rounded-full bg-black/60 p-3 text-white transition hover:bg-mc-blue"
-      >
-        {isImmersive ? (
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M15 9V4.5M15 9H19.5M15 9L20.25 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 15v4.5M15 15h4.5m-4.5 0l5.25 5.25"
+      {/* Zoom sits in the bottom row beside fullscreen, clear of the
+          Prev/Next arrows that ViewerClient centers on the left and right
+          edges. A plain horizontal slider drags fine on phones (a
+          CSS-rotated one could only be tapped). touch-none keeps the drag
+          from scrolling the page. */}
+      <div className="absolute bottom-4 right-4 z-[10000] flex items-center gap-2">
+        {!pickerMode && (
+          <label className="flex h-10 items-center gap-2 rounded-full bg-black/60 px-3 text-xs font-bold uppercase tracking-wider text-white">
+            <span>Zoom</span>
+            <input
+              type="range"
+              min={ZOOM_MIN}
+              max={ZOOM_MAX}
+              step={ZOOM_STEP}
+              value={zoom}
+              onChange={(event) => setZoom(Number(event.target.value))}
+              aria-label="Zoom level"
+              className="w-20 cursor-pointer touch-none accent-mc-gold sm:w-32"
             />
-          </svg>
-        ) : (
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M3.75 3.75h4.5m-4.5 0v4.5m0-4.5L9 9m11.25-5.25h-4.5m4.5 0v4.5m0-4.5L15 9M3.75 20.25h4.5m-4.5 0v-4.5m0 4.5L9 15m11.25 5.25h-4.5m4.5 0v-4.5m0 4.5L15 15"
-            />
-          </svg>
+          </label>
         )}
-      </button>
+        <button
+          type="button"
+          onClick={toggleFullscreen}
+          aria-label={isImmersive ? "Exit fullscreen" : "Enter fullscreen"}
+          className="rounded-full bg-black/60 p-3 text-white transition hover:bg-mc-blue"
+        >
+          {isImmersive ? (
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M15 9V4.5M15 9H19.5M15 9L20.25 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 15v4.5M15 15h4.5m-4.5 0l5.25 5.25"
+              />
+            </svg>
+          ) : (
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3.75 3.75h4.5m-4.5 0v4.5m0-4.5L9 9m11.25-5.25h-4.5m4.5 0v4.5m0-4.5L15 9M3.75 20.25h4.5m-4.5 0v-4.5m0 4.5L9 15m11.25 5.25h-4.5m4.5 0v-4.5m0 4.5L15 15"
+              />
+            </svg>
+          )}
+        </button>
+      </div>
     </div>
   );
 }
