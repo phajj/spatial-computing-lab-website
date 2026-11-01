@@ -22,6 +22,11 @@ model Media {
   date        DateTime?
   featured    Boolean  @default(false)
   hotspots    String?
+  // The view the thumbnail was taken from, and where the public viewer
+  // opens: camera yaw/pitch in degrees, plus a start time (seconds) for video.
+  viewYaw     Float?
+  viewPitch   Float?
+  viewTime    Float?
   published   Boolean  @default(false)
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")

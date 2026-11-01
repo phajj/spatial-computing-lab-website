@@ -16,3 +16,11 @@ export interface MediaItem {
   date: string | null;
   featured: boolean;
 }
+
+// What the 360° viewer needs on top of a card: the view (yaw/pitch in
+// degrees, start time in seconds) the item opens on.
+export interface ViewerMediaItem extends MediaItem {
+  viewYaw: number | null;
+  viewPitch: number | null;
+  viewTime: number | null;
+}

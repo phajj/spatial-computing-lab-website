@@ -4,7 +4,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import type { MediaItem } from "@/lib/types";
+import type { ViewerMediaItem } from "@/lib/types";
 import Viewer360 from "@/components/Viewer360";
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -35,7 +35,7 @@ export default function ViewerClient({
   media,
   loadError,
 }: {
-  media: MediaItem[];
+  media: ViewerMediaItem[];
   loadError: boolean;
 }) {
   const [hashParams, setHashParams] = useState<{

@@ -2,7 +2,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Viewer360 from "@/components/Viewer360";
+import ThumbnailPreview from "@/components/admin/ThumbnailPreview";
+import type { PickedView } from "@/lib/random-thumbnail";
 import type { MediaCategory, MediaType } from "@/lib/types";
 
 const inputClass =
@@ -22,6 +25,10 @@ type EditableMedia = {
   id: string;
   title: string;
   src: string;
+  thumb: string | null;
+  viewYaw: number | null;
+  viewPitch: number | null;
+  viewTime: number | null;
   type: string;
   category: string | null;
   collection: string | null;
@@ -63,6 +70,39 @@ export default function MediaEditForm({
   const [hotspots, setHotspots] = useState(media.hotspots ?? "");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  // A view picked in the 360° preview, uploaded the next time the form is
+  // saved. `pickedPreviewUrl` shows it before then.
+  const [pickedView, setPickedView] = useState<PickedView | null>(null);
+  const [pickedPreviewUrl, setPickedPreviewUrl] = useState<string | null>(null);
+  const [muted, setMuted] = useState(true);
+  const [reverseDrag, setReverseDrag] = useState(true);
+
+  useEffect(() => {
+    if (!pickedPreviewUrl) return;
+    return () => URL.revokeObjectURL(pickedPreviewUrl);
+  }, [pickedPreviewUrl]);
+
+  function handlePickView(view: PickedView) {
+    setPickedView(view);
+    setPickedPreviewUrl(URL.createObjectURL(view.blob));
+    setSuccess(null);
+  }
+
+  async function uploadPickedView(view: PickedView): Promise<string | null> {
+    const formData = new FormData();
+    formData.set("thumb", view.blob, "thumb.jpg");
+    formData.set("viewYaw", String(view.yaw));
+    formData.set("viewPitch", String(view.pitch));
+    if (view.time !== null) formData.set("viewTime", String(view.time));
+    const res = await fetch(`/api/admin/media/${media.id}/thumbnail`, {
+      method: "POST",
+      body: formData,
+    });
+    if (res.ok) return null;
+    const body = await res.json().catch(() => ({}));
+    return body.error ?? "Saving the thumbnail failed.";
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     save(published);
@@ -102,6 +142,18 @@ export default function MediaEditForm({
 
     setSaveTarget(nextPublished);
     try {
+      // The thumbnail goes first: the server only accepts a new one while
+      // the item is still a draft, and this save may be what publishes it.
+      if (pickedView) {
+        const thumbError = await uploadPickedView(pickedView);
+        if (thumbError) {
+          setError(thumbError);
+          return;
+        }
+        setPickedView(null);
+        setPickedPreviewUrl(null);
+      }
+
       const res = await fetch(`/api/admin/media/${media.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -188,6 +240,48 @@ export default function MediaEditForm({
         <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
           File can&apos;t be replaced here — delete and re-upload to change it.
         </p>
+      </div>
+
+      <div className="mb-6">
+        <p className={labelClass}>Thumbnail &amp; starting view</p>
+        {published ? (
+          <div className="flex flex-wrap items-start gap-4">
+            <ThumbnailPreview src={media.thumb} label="Current thumbnail" />
+            <p className="max-w-sm text-sm text-gray-600 dark:text-gray-400">
+              The public 360&deg; Viewer opens on this view. To change it,
+              click Save &amp; unpublish, pick a new view, then publish again.
+            </p>
+          </div>
+        ) : (
+          <>
+            <p className="mb-2 text-sm text-gray-600 dark:text-gray-400">
+              Drag to look around
+              {media.type === "video" ? " and use the Frame slider to choose a moment" : ""}
+              , then click <strong>Use this view as thumbnail</strong>. The
+              public 360&deg; Viewer will open on the same view.
+            </p>
+            <div className="aspect-video w-full overflow-hidden rounded-md">
+              <Viewer360
+                media={media}
+                muted={muted}
+                setMuted={setMuted}
+                reverseDrag={reverseDrag}
+                setReverseDrag={setReverseDrag}
+                pickerMode
+                onPickView={handlePickView}
+              />
+            </div>
+            <div className="mt-3 flex flex-wrap gap-4">
+              <ThumbnailPreview src={media.thumb} label="Current thumbnail" />
+              {pickedPreviewUrl && (
+                <ThumbnailPreview
+                  src={pickedPreviewUrl}
+                  label="New thumbnail — saved when you save this form"
+                />
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

@@ -1,7 +1,10 @@
 // src/components/admin/MediaUploadForm.tsx
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import Viewer360 from "@/components/Viewer360";
+import ThumbnailPreview from "@/components/admin/ThumbnailPreview";
+import { makeRandomThumbnail, type PickedView } from "@/lib/random-thumbnail";
 import type { MediaCategory, MediaType } from "@/lib/types";
 
 const inputClass =
@@ -53,13 +56,43 @@ export default function MediaUploadForm({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [progress, setProgress] = useState<number | null>(null);
+  const [preparing, setPreparing] = useState(false);
+  // A local URL for the chosen file, so the 360° preview can show it before
+  // it's uploaded, and the view picked in that preview (if any).
+  const [fileUrl, setFileUrl] = useState<string | null>(null);
+  const [pickedView, setPickedView] = useState<PickedView | null>(null);
+  const [pickedPreviewUrl, setPickedPreviewUrl] = useState<string | null>(null);
+  const [muted, setMuted] = useState(true);
+  const [reverseDrag, setReverseDrag] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!fileUrl) return;
+    return () => URL.revokeObjectURL(fileUrl);
+  }, [fileUrl]);
+
+  useEffect(() => {
+    if (!pickedPreviewUrl) return;
+    return () => URL.revokeObjectURL(pickedPreviewUrl);
+  }, [pickedPreviewUrl]);
+
+  function handlePickView(view: PickedView) {
+    setPickedView(view);
+    setPickedPreviewUrl(URL.createObjectURL(view.blob));
+  }
+
+  function clearPickedView() {
+    setPickedView(null);
+    setPickedPreviewUrl(null);
+  }
 
   function pickFile(selected: File | null) {
     setError(null);
     setSuccess(null);
+    clearPickedView();
     if (!selected) {
       setFile(null);
+      setFileUrl(null);
       return;
     }
     // Infer photo vs. video from the extension so staff don't have to set
@@ -68,6 +101,7 @@ export default function MediaUploadForm({
     if (["jpg", "jpeg", "png"].includes(ext)) setType("photo");
     else if (["mp4", "webm"].includes(ext)) setType("video");
     setFile(selected);
+    setFileUrl(URL.createObjectURL(selected));
     if (!title) {
       setTitle(selected.name.replace(/\.[^.]+$/, ""));
     }
@@ -75,6 +109,8 @@ export default function MediaUploadForm({
 
   function resetForm() {
     setFile(null);
+    setFileUrl(null);
+    clearPickedView();
     setTitle("");
     setType("photo");
     setCategory("");
@@ -88,7 +124,7 @@ export default function MediaUploadForm({
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setSuccess(null);
@@ -129,6 +165,23 @@ export default function MediaUploadForm({
     formData.set("featured", String(featured));
     formData.set("hotspots", hotspots.trim());
 
+    // Use the view picked in the preview, or else a random direction (and
+    // moment, for video), so every item starts with a thumbnail.
+    let thumbnail = pickedView;
+    if (!thumbnail) {
+      setPreparing(true);
+      thumbnail = await makeRandomThumbnail(file, type);
+      setPreparing(false);
+    }
+    if (thumbnail) {
+      formData.set("thumb", thumbnail.blob, "thumb.jpg");
+      formData.set("viewYaw", String(thumbnail.yaw));
+      formData.set("viewPitch", String(thumbnail.pitch));
+      if (thumbnail.time !== null) {
+        formData.set("viewTime", String(thumbnail.time));
+      }
+    }
+
     // XHR (rather than fetch) so upload progress is available — 360°
     // video files can be large enough that a bare "Uploading…" spinner
     // isn't reassuring.
@@ -153,7 +206,7 @@ export default function MediaUploadForm({
         return;
       }
       setSuccess(
-        `"${body.media.title}" uploaded as a draft. Click Publish in the list below when it's ready to go live.`
+        `"${body.media.title}" uploaded as a draft. Click Publish in the list below when it's ready to go live, or click its title to change the thumbnail first.`
       );
       onUploaded?.(body.media);
       resetForm();
@@ -211,6 +264,56 @@ export default function MediaUploadForm({
         )}
       </div>
 
+      {file && fileUrl && (
+        <div className="mb-6">
+          <p className={labelClass}>
+            Thumbnail &amp; starting view{" "}
+            <span className="font-normal text-gray-500 dark:text-gray-400">
+              (optional — skip it and a random view is used)
+            </span>
+          </p>
+          <p className="mb-2 text-sm text-gray-600 dark:text-gray-400">
+            Drag to look around
+            {type === "video" ? " and use the Frame slider to choose a moment" : ""}
+            , then click <strong>Use this view as thumbnail</strong>. The
+            public 360&deg; Viewer will open on the same view.
+          </p>
+          <div className="aspect-video w-full overflow-hidden rounded-md">
+            <Viewer360
+              key={`${fileUrl}-${type}`}
+              media={{
+                id: "upload-preview",
+                title,
+                src: fileUrl,
+                thumb: null,
+                type,
+                viewYaw: null,
+                viewPitch: null,
+                viewTime: null,
+              }}
+              muted={muted}
+              setMuted={setMuted}
+              reverseDrag={reverseDrag}
+              setReverseDrag={setReverseDrag}
+              pickerMode
+              onPickView={handlePickView}
+            />
+          </div>
+          {pickedPreviewUrl && (
+            <div className="mt-3 flex flex-wrap items-end gap-4">
+              <ThumbnailPreview src={pickedPreviewUrl} label="Chosen thumbnail" />
+              <button
+                type="button"
+                onClick={clearPickedView}
+                className="mb-5 rounded-full border border-mc-blue/20 px-3 py-1 text-xs font-medium text-mc-blue transition hover:bg-black/5 dark:border-white/20 dark:text-white dark:hover:bg-white/10"
+              >
+                Use a random view instead
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="title" className={labelClass}>
@@ -232,7 +335,10 @@ export default function MediaUploadForm({
           <select
             id="type"
             value={type}
-            onChange={(e) => setType(e.target.value as MediaType)}
+            onChange={(e) => {
+              setType(e.target.value as MediaType);
+              clearPickedView();
+            }}
             className={inputClass}
           >
             <option value="photo">Photo</option>
@@ -391,10 +497,14 @@ export default function MediaUploadForm({
 
       <button
         type="submit"
-        disabled={progress !== null}
+        disabled={progress !== null || preparing}
         className="mt-6 w-full rounded-full bg-mc-gold px-4 py-2 text-sm font-bold text-mc-blue transition hover:bg-mc-blue hover:text-white disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
       >
-        {progress !== null ? "Uploading…" : "Upload as draft"}
+        {preparing
+          ? "Preparing thumbnail…"
+          : progress !== null
+            ? "Uploading…"
+            : "Upload as draft"}
       </button>
       <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
         New media is saved as a draft and won&apos;t appear on the public site

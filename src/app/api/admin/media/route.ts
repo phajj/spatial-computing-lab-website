@@ -3,8 +3,13 @@ import fs from "node:fs/promises";
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { buildMediaDestination, saveMediaFile } from "@/lib/media-storage";
+import {
+  buildMediaDestination,
+  buildThumbnailDestination,
+  saveMediaFile,
+} from "@/lib/media-storage";
 import { isTrustedOrigin } from "@/lib/origin-check";
+import { readThumbnailUpload } from "@/lib/thumbnail-upload";
 import type { MediaCategory, MediaType } from "@/lib/types";
 
 // Generous cap for 360° video while still bounding disk usage from a bad
@@ -98,6 +103,14 @@ export async function POST(req: NextRequest) {
     date = parsed;
   }
 
+  // The upload form sends a thumbnail taken from a random view of the
+  // file. It's optional: if the browser couldn't decode the file to draw
+  // one, the item uploads without a thumbnail and one can be picked later.
+  const thumbnail = await readThumbnailUpload(formData, type as MediaType);
+  if (thumbnail && "error" in thumbnail) {
+    return NextResponse.json({ error: thumbnail.error }, { status: 400 });
+  }
+
   let destination;
   try {
     destination = buildMediaDestination(type as MediaType, collection, file.name);
@@ -111,11 +124,20 @@ export async function POST(req: NextRequest) {
   const buffer = Buffer.from(await file.arrayBuffer());
   await saveMediaFile(destination.dir, destination.absPath, buffer);
 
+  const thumbDestination = thumbnail ? buildThumbnailDestination() : null;
+  if (thumbnail && thumbDestination) {
+    await saveMediaFile(thumbDestination.dir, thumbDestination.absPath, thumbnail.buffer);
+  }
+
   try {
     const media = await prisma.media.create({
       data: {
         title,
         src: destination.publicSrc,
+        thumb: thumbDestination?.publicSrc ?? null,
+        viewYaw: thumbnail?.viewYaw ?? null,
+        viewPitch: thumbnail?.viewPitch ?? null,
+        viewTime: thumbnail?.viewTime ?? null,
         type,
         category,
         collection,
@@ -129,8 +151,11 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json({ media }, { status: 201 });
   } catch (error) {
-    // Don't leave an orphaned file on disk if the metadata row failed.
+    // Don't leave orphaned files on disk if the metadata row failed.
     await fs.unlink(destination.absPath).catch(() => {});
+    if (thumbDestination) {
+      await fs.unlink(thumbDestination.absPath).catch(() => {});
+    }
     console.error("Failed to create media row:", error);
     return NextResponse.json(
       { error: "Upload saved but the database record failed. Try again." },

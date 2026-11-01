@@ -4,10 +4,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { THUMB_HEIGHT, THUMB_WIDTH } from "@/lib/random-thumbnail";
 
 const ZOOM_MIN = 1;
 const ZOOM_MAX = 4;
 const ZOOM_STEP = 0.1;
+const THUMB_QUALITY = 0.85;
+
+const toRadians = (degrees) => (degrees * Math.PI) / 180;
+const toDegrees = (radians) => (radians * 180) / Math.PI;
 
 // A-Frame's look-controls deliberately limits touch drags to turning left and
 // right. This adds the up/down half, using the same sensitivity and the same
@@ -67,12 +72,30 @@ function registerTouchPitch(AFRAME) {
 // A-Frame touches `window`/`navigator` as soon as it's imported, so it can only
 // be loaded in the browser. Importing it inside an effect (instead of at the
 // top of the file) keeps this component safe to render on the server.
-export default function Viewer360({ media, muted, setMuted, reverseDrag, setReverseDrag }) {
+//
+// `pickerMode` is for the admin edit page: video starts paused with a
+// scrubber, zoom is off (the public viewer always opens unzoomed), and a
+// "Use this view" button hands the current view to `onPickView` as a
+// thumbnail plus the yaw/pitch/time it was taken from.
+export default function Viewer360({
+  media,
+  muted,
+  setMuted,
+  reverseDrag,
+  setReverseDrag,
+  pickerMode = false,
+  onPickView = /** @type {((view: import("@/lib/random-thumbnail").PickedView) => void) | null} */ (null),
+}) {
   const [aframeReady, setAframeReady] = useState(false);
   const videoRef = useRef(null);
   const containerRef = useRef(null);
+  const sceneRef = useRef(null);
+  const cameraRef = useRef(null);
+  const sphereRef = useRef(null);
   const [isImmersive, setIsImmersive] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const [videoDuration, setVideoDuration] = useState(0);
+  const [videoTime, setVideoTime] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -99,12 +122,30 @@ export default function Viewer360({ media, muted, setMuted, reverseDrag, setReve
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
+  // Open on the saved view. look-controls keeps yaw and pitch on two inner
+  // objects and copies them onto the camera every frame, so the starting
+  // angle has to be set there rather than on the camera's rotation.
+  useEffect(() => {
+    const cameraEl = cameraRef.current;
+    if (!aframeReady || !cameraEl) return;
+    if (media.viewYaw == null && media.viewPitch == null) return;
+    function applyView() {
+      const lookControls = cameraEl.components["look-controls"];
+      if (!lookControls) return;
+      lookControls.yawObject.rotation.y = toRadians(media.viewYaw ?? 0);
+      lookControls.pitchObject.rotation.x = toRadians(media.viewPitch ?? 0);
+    }
+    if (cameraEl.hasLoaded) applyView();
+    else cameraEl.addEventListener("loaded", applyView, { once: true });
+    return () => cameraEl.removeEventListener("loaded", applyView);
+  }, [aframeReady, media]);
+
   // Scroll-to-zoom needs a non-passive listener so preventDefault() can stop
   // the page itself from scrolling while the cursor is over the viewer;
   // React's onWheel prop is passive by default and can't do that.
   useEffect(() => {
     const container = containerRef.current;
-    if (!container) return;
+    if (!container || pickerMode) return;
     function handleWheel(event) {
       event.preventDefault();
       setZoom((current) => {
@@ -114,7 +155,75 @@ export default function Viewer360({ media, muted, setMuted, reverseDrag, setReve
     }
     container.addEventListener("wheel", handleWheel, { passive: false });
     return () => container.removeEventListener("wheel", handleWheel);
-  }, [aframeReady]);
+  }, [aframeReady, pickerMode]);
+
+  function handleVideoMetadata(event) {
+    const video = event.currentTarget;
+    if (media.viewTime != null && media.viewTime < video.duration) {
+      video.currentTime = media.viewTime;
+    }
+    setVideoDuration(video.duration);
+    setVideoTime(video.currentTime);
+  }
+
+  // A paused video doesn't push new frames to its texture on its own, so
+  // after scrubbing in picker mode, mark the texture as changed.
+  function refreshVideoTexture() {
+    const mesh = sphereRef.current?.getObject3D("mesh");
+    if (mesh?.material?.map) mesh.material.map.needsUpdate = true;
+  }
+
+  function scrubVideo(time) {
+    const video = videoRef.current;
+    if (!video) return;
+    video.pause();
+    video.currentTime = time;
+    setVideoTime(time);
+  }
+
+  // Draws the current view into a 16:9 JPEG. The scene is rendered once
+  // right before copying, because WebGL clears its canvas after each frame
+  // is shown on screen.
+  function captureView() {
+    const sceneEl = sceneRef.current;
+    const cameraEl = cameraRef.current;
+    if (!sceneEl?.renderer || !cameraEl || !onPickView) return;
+
+    sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
+    const source = sceneEl.canvas;
+    const targetAspect = THUMB_WIDTH / THUMB_HEIGHT;
+    let sw = source.width;
+    let sh = source.height;
+    if (sw / sh > targetAspect) sw = sh * targetAspect;
+    else sh = sw / targetAspect;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = THUMB_WIDTH;
+    canvas.height = THUMB_HEIGHT;
+    canvas
+      .getContext("2d")
+      .drawImage(
+        source,
+        (source.width - sw) / 2,
+        (source.height - sh) / 2,
+        sw,
+        sh,
+        0,
+        0,
+        THUMB_WIDTH,
+        THUMB_HEIGHT
+      );
+
+    const { x, y } = cameraEl.object3D.rotation;
+    const time = media.type === "video" && videoRef.current ? videoRef.current.currentTime : null;
+    canvas.toBlob(
+      (blob) => {
+        if (blob) onPickView({ blob, yaw: toDegrees(y), pitch: toDegrees(x), time });
+      },
+      "image/jpeg",
+      THUMB_QUALITY
+    );
+  }
 
   function toggleFullscreen() {
     if (document.fullscreenElement) {
@@ -167,6 +276,7 @@ export default function Viewer360({ media, muted, setMuted, reverseDrag, setReve
           load. Re-enable it once the site is on HTTPS: iPhones need its
           "Allow" button before they'll share the gyroscope. */}
       <a-scene
+        ref={sceneRef}
         embedded
         vr-mode-ui="enabled: false"
         device-orientation-permission-ui="enabled: false"
@@ -181,20 +291,23 @@ export default function Viewer360({ media, muted, setMuted, reverseDrag, setReve
               poster={media.thumb || undefined}
               loop
               muted={muted}
-              autoPlay
+              autoPlay={!pickerMode}
               playsInline
               crossOrigin="anonymous"
+              onLoadedMetadata={handleVideoMetadata}
+              onSeeked={refreshVideoTexture}
             />
           </a-assets>
         )}
 
         {media.type === "video" ? (
-          <a-videosphere src={`#${assetId}`} />
+          <a-videosphere ref={sphereRef} src={`#${assetId}`} />
         ) : (
           <a-sky src={media.src} crossorigin="anonymous" />
         )}
 
         <a-entity
+          ref={cameraRef}
           camera={`zoom: ${zoom}`}
           look-controls={`reverseMouseDrag: ${reverseDrag}; reverseTouchDrag: ${reverseDrag}`}
           touch-pitch
@@ -239,25 +352,54 @@ export default function Viewer360({ media, muted, setMuted, reverseDrag, setReve
         </button>
       </div>
 
-      <div className="absolute right-4 top-1/2 z-[10000] flex -translate-y-1/2 flex-col items-center gap-2 rounded-full bg-black/60 px-3 py-3 text-xs font-bold uppercase tracking-wider text-white">
-        <span>Zoom</span>
-        {/* A natively vertical slider (writing-mode, with direction: rtl putting
-            the minimum at the bottom) rather than a horizontal one rotated with
-            CSS: phones can't drag a rotated slider, only tap it. touch-none
-            keeps the drag from scrolling the page. */}
-        <input
-          type="range"
-          min={ZOOM_MIN}
-          max={ZOOM_MAX}
-          step={ZOOM_STEP}
-          value={zoom}
-          onChange={(event) => setZoom(Number(event.target.value))}
-          aria-label="Zoom level"
-          aria-orientation="vertical"
-          className="h-28 w-6 cursor-pointer touch-none accent-mc-gold [direction:rtl] [writing-mode:vertical-lr]"
-        />
+      {!pickerMode && (
+        <div className="absolute right-4 top-1/2 z-[10000] flex -translate-y-1/2 flex-col items-center gap-2 rounded-full bg-black/60 px-3 py-3 text-xs font-bold uppercase tracking-wider text-white">
+          <span>Zoom</span>
+          {/* A natively vertical slider (writing-mode, with direction: rtl putting
+              the minimum at the bottom) rather than a horizontal one rotated with
+              CSS: phones can't drag a rotated slider, only tap it. touch-none
+              keeps the drag from scrolling the page. */}
+          <input
+            type="range"
+            min={ZOOM_MIN}
+            max={ZOOM_MAX}
+            step={ZOOM_STEP}
+            value={zoom}
+            onChange={(event) => setZoom(Number(event.target.value))}
+            aria-label="Zoom level"
+            aria-orientation="vertical"
+            className="h-28 w-6 cursor-pointer touch-none accent-mc-gold [direction:rtl] [writing-mode:vertical-lr]"
+          />
+        </div>
+      )}
 
-      </div>
+      {pickerMode && (
+        <div className="absolute bottom-16 left-1/2 z-[10000] flex w-[min(90%,32rem)] -translate-x-1/2 flex-col items-center gap-3 text-xs font-bold uppercase tracking-wider text-white">
+          {media.type === "video" && videoDuration > 0 && (
+            <label className="flex w-full items-center gap-3 rounded-full bg-black/60 px-4 py-2">
+              <span className="shrink-0">Frame</span>
+              <input
+                type="range"
+                min={0}
+                max={videoDuration}
+                step={0.1}
+                value={videoTime}
+                onChange={(event) => scrubVideo(Number(event.target.value))}
+                aria-label="Video frame"
+                className="w-full cursor-pointer accent-mc-gold"
+              />
+              <span className="shrink-0 tabular-nums">{videoTime.toFixed(1)}s</span>
+            </label>
+          )}
+          <button
+            type="button"
+            onClick={captureView}
+            className="rounded-full bg-mc-gold px-4 py-2 text-mc-blue shadow-[0_0_12px_4px_rgb(0_0_0/0.6)] transition hover:bg-white"
+          >
+            Use this view as thumbnail
+          </button>
+        </div>
+      )}
 
       <button
         type="button"

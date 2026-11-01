@@ -70,6 +70,31 @@ export function buildMediaDestination(
   return { absPath, dir, publicSrc: `/media/${folder}/${filename}` };
 }
 
+// Thumbnails live in their own folder. slugify() only ever produces
+// [a-z0-9-], so a leading underscore can't collide with an album folder.
+// Each thumbnail gets a fresh random name, since published media is served
+// with an immutable cache header — reusing a name would leave browsers
+// showing the old picture.
+export function buildThumbnailDestination() {
+  const mediaDir = getMediaDir();
+  const dir = path.join(mediaDir, "_thumbs");
+  const filename = `${crypto.randomUUID()}.jpg`;
+  return {
+    absPath: path.join(dir, filename),
+    dir,
+    publicSrc: `/media/_thumbs/${filename}`,
+  };
+}
+
+// Maps a stored `/media/...` URL back to its file on disk, or null if it
+// isn't one or would land outside MEDIA_DIR.
+export function mediaSrcToAbsPath(src: string): string | null {
+  if (!src.startsWith("/media/")) return null;
+  const mediaDir = getMediaDir();
+  const absPath = path.join(mediaDir, src.slice("/media/".length));
+  return absPath.startsWith(mediaDir + path.sep) ? absPath : null;
+}
+
 export async function saveMediaFile(
   dir: string,
   absPath: string,
