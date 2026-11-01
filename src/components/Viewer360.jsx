@@ -253,7 +253,10 @@ export default function Viewer360({
   const loadingScreen = `dotsColor: ${rootStyle.getPropertyValue("--mc-gold").trim()}; backgroundColor: ${rootStyle.getPropertyValue("--mc-blue").trim()}`;
 
   return (
-    <div ref={containerRef} className="relative h-full w-full bg-black">
+    // isolate makes this its own stacking context, so the overlay controls' high
+    // z-index only ranks them against A-Frame's canvas. Without it they also
+    // outrank the sticky site header and slide over it when the page scrolls.
+    <div ref={containerRef} className="relative isolate h-full w-full bg-black">
       {/* A-Frame injects its own enter-VR/fullscreen button (.a-enter-vr) directly
           into the DOM outside React's control. vr-mode-ui="enabled: false" is
           supposed to suppress it, but it still renders in some cases and clicking
