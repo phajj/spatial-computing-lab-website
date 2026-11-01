@@ -3,11 +3,11 @@
 const STEPS = [
   {
     title: "Upload",
-    body: "Drop a 360° photo or video into the upload box and fill in its details. Every upload starts as a draft, which only signed-in admins can see.",
+    body: "Drop a 360° photo or video into the upload box and fill in its details. To choose its thumbnail, look around in the 360° preview and click Use this view as thumbnail; skip that and a random view is used. Every upload starts as a draft, which only signed-in admins can see.",
   },
   {
     title: "Review",
-    body: "Click the item's title in the list to open its edit page. Check the title, category, album, location, and date. Category and album control where it shows up in the Gallery filters.",
+    body: "Click the item's title in the list to open its edit page. Check the title, category, album, location, and date. Category and album control where it shows up in the Gallery filters. You can pick a different thumbnail here the same way. The public viewer opens on whichever view the thumbnail was taken from.",
   },
   {
     title: "Publish",
@@ -19,7 +19,7 @@ const STEPS = [
   },
   {
     title: "Unpublish if needed",
-    body: "Unpublish takes an item off the public site and returns it to draft. The file and its details are kept, so you can publish it again at any time.",
+    body: "Unpublish takes an item off the public site and returns it to draft. The file and its details are kept, so you can publish it again at any time. A live item’s thumbnail can only be changed this way: unpublish, pick a new view, then publish again.",
   },
 ];
 

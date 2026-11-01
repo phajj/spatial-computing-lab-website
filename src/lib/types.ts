@@ -16,3 +16,19 @@ export interface MediaItem {
   date: string | null;
   featured: boolean;
 }
+
+// An album as the admin forms see it: its name (what `media.collection`
+// holds) and the label new media in it defaults to.
+export interface AlbumOption {
+  id: string;
+  name: string;
+  category: MediaCategory | null;
+}
+
+// What the 360° viewer needs on top of a card: the view (yaw/pitch in
+// degrees, start time in seconds) the item opens on.
+export interface ViewerMediaItem extends MediaItem {
+  viewYaw: number | null;
+  viewPitch: number | null;
+  viewTime: number | null;
+}

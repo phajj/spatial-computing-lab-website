@@ -1,7 +1,7 @@
 // src/app/(public)/viewer/page.tsx
 import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
-import type { MediaItem } from "@/lib/types";
+import type { ViewerMediaItem } from "@/lib/types";
 import ViewerClient from "@/components/public/ViewerClient";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +24,9 @@ const MEDIA_SELECT = {
   location: true,
   date: true,
   featured: true,
+  viewYaw: true,
+  viewPitch: true,
+  viewTime: true,
 } as const;
 
 function toMediaItem(row: {
@@ -38,16 +41,19 @@ function toMediaItem(row: {
   location: string | null;
   date: Date | null;
   featured: boolean;
-}): MediaItem {
+  viewYaw: number | null;
+  viewPitch: number | null;
+  viewTime: number | null;
+}): ViewerMediaItem {
   return {
     ...row,
-    type: row.type as MediaItem["type"],
-    category: row.category as MediaItem["category"],
+    type: row.type as ViewerMediaItem["type"],
+    category: row.category as ViewerMediaItem["category"],
     date: row.date ? row.date.toISOString() : null,
   };
 }
 
-async function getViewerMedia(): Promise<{ media: MediaItem[]; loadError: boolean }> {
+async function getViewerMedia(): Promise<{ media: ViewerMediaItem[]; loadError: boolean }> {
   try {
     const rows = await prisma.media.findMany({
       where: { published: true },

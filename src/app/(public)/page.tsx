@@ -54,7 +54,7 @@ function toMediaItem(row: {
 
 async function getHomePageData() {
   try {
-    const [featuredRows, recentRows, allRows] = await Promise.all([
+    const [featuredRows, recentRows, allRows, studyAbroadAlbums] = await Promise.all([
       prisma.media.findMany({
         where: { published: true, featured: true },
         orderBy: { date: "desc" },
@@ -69,18 +69,22 @@ async function getHomePageData() {
       }),
       prisma.media.findMany({
         where: { published: true },
-        select: { type: true, category: true, location: true },
+        select: { type: true, category: true, collection: true },
+      }),
+      prisma.album.findMany({
+        where: { category: "study_abroad" },
+        select: { name: true },
       }),
     ]);
 
     const photoCount = allRows.filter((row) => row.type === "photo").length;
     const videoCount = allRows.filter((row) => row.type === "video").length;
-    const studyAbroadLocationCount = new Set(
-      allRows
-        .filter((row) => row.category === "study_abroad")
-        .map((row) => row.location)
-        .filter(Boolean)
-    ).size;
+    // One per trip: albums labeled Study Abroad that have something
+    // published, however many photos and videos each holds.
+    const publishedAlbums = new Set(allRows.map((row) => row.collection));
+    const studyAbroadLocationCount = studyAbroadAlbums.filter((album) =>
+      publishedAlbums.has(album.name)
+    ).length;
     const campusEventCount = allRows.filter(
       (row) => row.category === "campus_events"
     ).length;

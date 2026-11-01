@@ -3,6 +3,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import type { AlbumOption, MediaCategory } from "@/lib/types";
+import AlbumsPanel, { type AlbumRow } from "./AlbumsPanel";
 import MediaUploadForm, { type UploadedMedia } from "./MediaUploadForm";
 import PublishingGuide from "./PublishingGuide";
 
@@ -28,27 +30,40 @@ function formatDate(iso: string) {
 
 export default function MediaManagerClient({
   initialMedia,
-  initialCollections,
+  initialAlbums,
 }: {
   initialMedia: MediaRow[];
-  initialCollections: string[];
+  initialAlbums: AlbumRow[];
 }) {
   const [media, setMedia] = useState(initialMedia);
-  const [collections, setCollections] = useState(initialCollections);
+  const [albums, setAlbums] = useState(initialAlbums);
   const [filter, setFilter] = useState<StatusFilter>("all");
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  function handleUploaded(uploaded: UploadedMedia) {
+  function handleUploaded(uploaded: UploadedMedia, album: AlbumOption | null) {
     setMedia((current) => [{ ...uploaded, published: false }, ...current]);
-    // If this upload created a brand-new album, add it to the dropdown so
-    // the next upload in this session can reuse it without a page reload.
-    if (uploaded.collection && !collections.includes(uploaded.collection)) {
-      const name = uploaded.collection;
-      setCollections((current) =>
-        [...current, name].sort((a, b) => a.localeCompare(b))
-      );
-    }
+    if (!album) return;
+    // Keep the album list current without a page reload: bump the count,
+    // or add a brand-new album so the next upload can reuse it.
+    setAlbums((current) =>
+      current.some((row) => row.id === album.id)
+        ? current.map((row) =>
+            row.id === album.id ? { ...row, itemCount: row.itemCount + 1 } : row
+          )
+        : [...current, { ...album, itemCount: 1 }].sort((a, b) =>
+            a.name.localeCompare(b.name)
+          )
+    );
+  }
+
+  function handleAlbumLabelChanged(album: AlbumRow, category: MediaCategory | null) {
+    setAlbums((current) =>
+      current.map((row) => (row.id === album.id ? { ...row, category } : row))
+    );
+    setMedia((current) =>
+      current.map((row) => (row.collection === album.name ? { ...row, category } : row))
+    );
   }
 
   async function setPublished(item: MediaRow, published: boolean) {
@@ -98,7 +113,7 @@ export default function MediaManagerClient({
     <div className="space-y-8">
       <PublishingGuide defaultOpen={media.length === 0} />
 
-      <MediaUploadForm collections={collections} onUploaded={handleUploaded} />
+      <MediaUploadForm albums={albums} onUploaded={handleUploaded} />
 
       <div>
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -218,6 +233,8 @@ export default function MediaManagerClient({
           </table>
         </div>
       </div>
+
+      <AlbumsPanel albums={albums} onLabelChanged={handleAlbumLabelChanged} />
     </div>
   );
 }

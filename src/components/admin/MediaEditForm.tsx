@@ -2,8 +2,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import type { MediaCategory, MediaType } from "@/lib/types";
+import { useEffect, useState } from "react";
+import Viewer360 from "@/components/Viewer360";
+import ThumbnailPreview from "@/components/admin/ThumbnailPreview";
+import type { PickedView } from "@/lib/random-thumbnail";
+import type { AlbumOption, MediaCategory, MediaType } from "@/lib/types";
 
 const inputClass =
   "w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-mc-blue focus:outline-none focus:ring-1 focus:ring-mc-blue dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100";
@@ -22,6 +25,10 @@ type EditableMedia = {
   id: string;
   title: string;
   src: string;
+  thumb: string | null;
+  viewYaw: number | null;
+  viewPitch: number | null;
+  viewTime: number | null;
   type: string;
   category: string | null;
   collection: string | null;
@@ -35,10 +42,10 @@ type EditableMedia = {
 
 export default function MediaEditForm({
   media,
-  collections,
+  albums,
 }: {
   media: EditableMedia;
-  collections: string[];
+  albums: AlbumOption[];
 }) {
   const router = useRouter();
   const [title, setTitle] = useState(media.title);
@@ -47,13 +54,31 @@ export default function MediaEditForm({
     (media.category as MediaCategory) ?? ""
   );
   const knownCollection =
-    media.collection && collections.includes(media.collection);
+    media.collection && albums.some((album) => album.name === media.collection);
   const [collectionChoice, setCollectionChoice] = useState(
     media.collection ? (knownCollection ? media.collection : NEW_ALBUM) : ""
   );
   const [newCollection, setNewCollection] = useState(
     media.collection && !knownCollection ? media.collection : ""
   );
+  const [newAlbumCategory, setNewAlbumCategory] = useState<MediaCategory | "">("");
+
+  // Picking an album fills in Category with that album's label; staff can
+  // still change Category for this one item afterwards.
+  function chooseAlbum(value: string) {
+    setCollectionChoice(value);
+    if (value === NEW_ALBUM) {
+      setCategory(newAlbumCategory);
+      return;
+    }
+    const album = albums.find((a) => a.name === value);
+    if (album) setCategory(album.category ?? "");
+  }
+
+  function chooseNewAlbumCategory(value: MediaCategory | "") {
+    setNewAlbumCategory(value);
+    setCategory(value);
+  }
   const [description, setDescription] = useState(media.description ?? "");
   const [location, setLocation] = useState(media.location ?? "");
   const [date, setDate] = useState(media.date);
@@ -63,6 +88,39 @@ export default function MediaEditForm({
   const [hotspots, setHotspots] = useState(media.hotspots ?? "");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  // A view picked in the 360° preview, uploaded the next time the form is
+  // saved. `pickedPreviewUrl` shows it before then.
+  const [pickedView, setPickedView] = useState<PickedView | null>(null);
+  const [pickedPreviewUrl, setPickedPreviewUrl] = useState<string | null>(null);
+  const [muted, setMuted] = useState(true);
+  const [reverseDrag, setReverseDrag] = useState(true);
+
+  useEffect(() => {
+    if (!pickedPreviewUrl) return;
+    return () => URL.revokeObjectURL(pickedPreviewUrl);
+  }, [pickedPreviewUrl]);
+
+  function handlePickView(view: PickedView) {
+    setPickedView(view);
+    setPickedPreviewUrl(URL.createObjectURL(view.blob));
+    setSuccess(null);
+  }
+
+  async function uploadPickedView(view: PickedView): Promise<string | null> {
+    const formData = new FormData();
+    formData.set("thumb", view.blob, "thumb.jpg");
+    formData.set("viewYaw", String(view.yaw));
+    formData.set("viewPitch", String(view.pitch));
+    if (view.time !== null) formData.set("viewTime", String(view.time));
+    const res = await fetch(`/api/admin/media/${media.id}/thumbnail`, {
+      method: "POST",
+      body: formData,
+    });
+    if (res.ok) return null;
+    const body = await res.json().catch(() => ({}));
+    return body.error ?? "Saving the thumbnail failed.";
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     save(published);
@@ -102,6 +160,18 @@ export default function MediaEditForm({
 
     setSaveTarget(nextPublished);
     try {
+      // The thumbnail goes first: the server only accepts a new one while
+      // the item is still a draft, and this save may be what publishes it.
+      if (pickedView) {
+        const thumbError = await uploadPickedView(pickedView);
+        if (thumbError) {
+          setError(thumbError);
+          return;
+        }
+        setPickedView(null);
+        setPickedPreviewUrl(null);
+      }
+
       const res = await fetch(`/api/admin/media/${media.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -110,6 +180,7 @@ export default function MediaEditForm({
           type,
           category,
           collection: collectionValue,
+          albumCategory: collectionChoice === NEW_ALBUM ? newAlbumCategory : "",
           description: description.trim(),
           location: location.trim(),
           date,
@@ -190,6 +261,48 @@ export default function MediaEditForm({
         </p>
       </div>
 
+      <div className="mb-6">
+        <p className={labelClass}>Thumbnail &amp; starting view</p>
+        {published ? (
+          <div className="flex flex-wrap items-start gap-4">
+            <ThumbnailPreview src={media.thumb} label="Current thumbnail" />
+            <p className="max-w-sm text-sm text-gray-600 dark:text-gray-400">
+              The public 360&deg; Viewer opens on this view. To change it,
+              click Save &amp; unpublish, pick a new view, then publish again.
+            </p>
+          </div>
+        ) : (
+          <>
+            <p className="mb-2 text-sm text-gray-600 dark:text-gray-400">
+              Drag to look around
+              {media.type === "video" ? " and use the Frame slider to choose a moment" : ""}
+              , then click <strong>Use this view as thumbnail</strong>. The
+              public 360&deg; Viewer will open on the same view.
+            </p>
+            <div className="aspect-video w-full overflow-hidden rounded-md">
+              <Viewer360
+                media={media}
+                muted={muted}
+                setMuted={setMuted}
+                reverseDrag={reverseDrag}
+                setReverseDrag={setReverseDrag}
+                pickerMode
+                onPickView={handlePickView}
+              />
+            </div>
+            <div className="mt-3 flex flex-wrap gap-4">
+              <ThumbnailPreview src={media.thumb} label="Current thumbnail" />
+              {pickedPreviewUrl && (
+                <ThumbnailPreview
+                  src={pickedPreviewUrl}
+                  label="New thumbnail — saved when you save this form"
+                />
+              )}
+            </div>
+          </>
+        )}
+      </div>
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="title" className={labelClass}>
@@ -220,6 +333,50 @@ export default function MediaEditForm({
         </div>
 
         <div>
+          <label htmlFor="collection" className={labelClass}>
+            Album
+          </label>
+          <select
+            id="collection"
+            value={collectionChoice}
+            onChange={(e) => chooseAlbum(e.target.value)}
+            className={inputClass}
+          >
+            <option value="">— None —</option>
+            {albums.map((album) => (
+              <option key={album.id} value={album.name}>
+                {album.name}
+              </option>
+            ))}
+            <option value={NEW_ALBUM}>+ New album…</option>
+          </select>
+          {collectionChoice === NEW_ALBUM && (
+            <>
+              <input
+                aria-label="New album name"
+                placeholder="Greece Spring 2026"
+                value={newCollection}
+                onChange={(e) => setNewCollection(e.target.value)}
+                className={`${inputClass} mt-2`}
+              />
+              <select
+                aria-label="New album label"
+                value={newAlbumCategory}
+                onChange={(e) => chooseNewAlbumCategory(e.target.value as MediaCategory | "")}
+                className={`${inputClass} mt-2`}
+              >
+                <option value="">Album label: none</option>
+                {CATEGORY_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    Album label: {opt.label}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
+        </div>
+
+        <div>
           <label htmlFor="category" className={labelClass}>
             Category
           </label>
@@ -236,35 +393,9 @@ export default function MediaEditForm({
               </option>
             ))}
           </select>
-        </div>
-
-        <div>
-          <label htmlFor="collection" className={labelClass}>
-            Album
-          </label>
-          <select
-            id="collection"
-            value={collectionChoice}
-            onChange={(e) => setCollectionChoice(e.target.value)}
-            className={inputClass}
-          >
-            <option value="">— None —</option>
-            {collections.map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-            <option value={NEW_ALBUM}>+ New album…</option>
-          </select>
-          {collectionChoice === NEW_ALBUM && (
-            <input
-              aria-label="New album name"
-              placeholder="Greece Spring 2026"
-              value={newCollection}
-              onChange={(e) => setNewCollection(e.target.value)}
-              className={`${inputClass} mt-2`}
-            />
-          )}
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            Defaults to the album&apos;s label.
+          </p>
         </div>
 
         <div>

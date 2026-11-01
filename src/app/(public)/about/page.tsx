@@ -9,10 +9,12 @@ export const metadata: Metadata = {
 };
 
 const people: { name: string; role: string; photo?: string }[] = [
-  { name: "Brandy Benedict, Ph.D.", role: "Associate Professor" },
+  { name: "Brandy Benedict, Ph.D.", 
+    role: "Associate Professor", 
+    photo: "/team/BBenedict.jpeg", },
   {
     name: "Peter Hajj",
-    role: "Undergraduate Lab Manager",
+    role: "Undergraduate Lab Manager\n& Web Developer",
     photo: "/team/PeterHajj.jpg",
   },
 ];
@@ -48,8 +50,7 @@ export default function AboutPage() {
               >
                 spatialcomputing@merrimack.edu
               </a>{" "}
-              to learn more about the lab, schedule a tour or demo, or to chat
-              about potential collaborations.
+              to learn more about the lab, schedule a tour or demo, or to chat about potential collaborations.
             </p>
           </div>
 
@@ -79,7 +80,7 @@ export default function AboutPage() {
                 <p className="font-extrabold text-lg text-mc-blue dark:text-white">
                   {person.name}
                 </p>
-                <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                <p className="whitespace-pre-line text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                   {person.role}
                 </p>
               </div>

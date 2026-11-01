@@ -22,6 +22,11 @@ model Media {
   date        DateTime?
   featured    Boolean  @default(false)
   hotspots    String?
+  // The view the thumbnail was taken from, and where the public viewer
+  // opens: camera yaw/pitch in degrees, plus a start time (seconds) for video.
+  viewYaw     Float?
+  viewPitch   Float?
+  viewTime    Float?
   published   Boolean  @default(false)
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -32,6 +37,20 @@ model Media {
   @@index([collection])
   @@index([featured])
   @@map("media")
+}
+
+// An album's label (study_abroad / campus_events), which new media in the
+// album defaults to. Media points at an album by name through
+// `media.collection` rather than a foreign key, so every existing query on
+// that column keeps working unchanged.
+model Album {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  category  String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("albums")
 }
 
 // Better Auth's own tables (session-based email + password auth).

@@ -1,8 +1,11 @@
 // src/components/admin/MediaUploadForm.tsx
 "use client";
 
-import { useRef, useState } from "react";
-import type { MediaCategory, MediaType } from "@/lib/types";
+import { useEffect, useRef, useState } from "react";
+import Viewer360 from "@/components/Viewer360";
+import ThumbnailPreview from "@/components/admin/ThumbnailPreview";
+import { makeRandomThumbnail, type PickedView } from "@/lib/random-thumbnail";
+import type { AlbumOption, MediaCategory, MediaType } from "@/lib/types";
 
 const inputClass =
   "w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-mc-blue focus:outline-none focus:ring-1 focus:ring-mc-blue dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100";
@@ -29,11 +32,11 @@ export type UploadedMedia = {
 };
 
 export default function MediaUploadForm({
-  collections,
+  albums,
   onUploaded,
 }: {
-  collections: string[];
-  onUploaded?: (media: UploadedMedia) => void;
+  albums: AlbumOption[];
+  onUploaded?: (media: UploadedMedia, album: AlbumOption | null) => void;
 }) {
   const [file, setFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -45,6 +48,24 @@ export default function MediaUploadForm({
   // when NEW_ALBUM is chosen.
   const [collectionChoice, setCollectionChoice] = useState("");
   const [newCollection, setNewCollection] = useState("");
+  const [newAlbumCategory, setNewAlbumCategory] = useState<MediaCategory | "">("");
+
+  // Picking an album fills in Category with that album's label; staff can
+  // still change Category for this one item afterwards.
+  function chooseAlbum(value: string) {
+    setCollectionChoice(value);
+    if (value === NEW_ALBUM) {
+      setCategory(newAlbumCategory);
+      return;
+    }
+    const album = albums.find((a) => a.name === value);
+    if (album) setCategory(album.category ?? "");
+  }
+
+  function chooseNewAlbumCategory(value: MediaCategory | "") {
+    setNewAlbumCategory(value);
+    setCategory(value);
+  }
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
   const [date, setDate] = useState("");
@@ -53,13 +74,43 @@ export default function MediaUploadForm({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [progress, setProgress] = useState<number | null>(null);
+  const [preparing, setPreparing] = useState(false);
+  // A local URL for the chosen file, so the 360° preview can show it before
+  // it's uploaded, and the view picked in that preview (if any).
+  const [fileUrl, setFileUrl] = useState<string | null>(null);
+  const [pickedView, setPickedView] = useState<PickedView | null>(null);
+  const [pickedPreviewUrl, setPickedPreviewUrl] = useState<string | null>(null);
+  const [muted, setMuted] = useState(true);
+  const [reverseDrag, setReverseDrag] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!fileUrl) return;
+    return () => URL.revokeObjectURL(fileUrl);
+  }, [fileUrl]);
+
+  useEffect(() => {
+    if (!pickedPreviewUrl) return;
+    return () => URL.revokeObjectURL(pickedPreviewUrl);
+  }, [pickedPreviewUrl]);
+
+  function handlePickView(view: PickedView) {
+    setPickedView(view);
+    setPickedPreviewUrl(URL.createObjectURL(view.blob));
+  }
+
+  function clearPickedView() {
+    setPickedView(null);
+    setPickedPreviewUrl(null);
+  }
 
   function pickFile(selected: File | null) {
     setError(null);
     setSuccess(null);
+    clearPickedView();
     if (!selected) {
       setFile(null);
+      setFileUrl(null);
       return;
     }
     // Infer photo vs. video from the extension so staff don't have to set
@@ -68,6 +119,7 @@ export default function MediaUploadForm({
     if (["jpg", "jpeg", "png"].includes(ext)) setType("photo");
     else if (["mp4", "webm"].includes(ext)) setType("video");
     setFile(selected);
+    setFileUrl(URL.createObjectURL(selected));
     if (!title) {
       setTitle(selected.name.replace(/\.[^.]+$/, ""));
     }
@@ -75,11 +127,14 @@ export default function MediaUploadForm({
 
   function resetForm() {
     setFile(null);
+    setFileUrl(null);
+    clearPickedView();
     setTitle("");
     setType("photo");
     setCategory("");
     setCollectionChoice("");
     setNewCollection("");
+    setNewAlbumCategory("");
     setDescription("");
     setLocation("");
     setDate("");
@@ -88,7 +143,7 @@ export default function MediaUploadForm({
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setSuccess(null);
@@ -123,11 +178,31 @@ export default function MediaUploadForm({
     formData.set("type", type);
     formData.set("category", category);
     formData.set("collection", collectionValue);
+    if (collectionChoice === NEW_ALBUM) {
+      formData.set("albumCategory", newAlbumCategory);
+    }
     formData.set("description", description.trim());
     formData.set("location", location.trim());
     formData.set("date", date);
     formData.set("featured", String(featured));
     formData.set("hotspots", hotspots.trim());
+
+    // Use the view picked in the preview, or else a random direction (and
+    // moment, for video), so every item starts with a thumbnail.
+    let thumbnail = pickedView;
+    if (!thumbnail) {
+      setPreparing(true);
+      thumbnail = await makeRandomThumbnail(file, type);
+      setPreparing(false);
+    }
+    if (thumbnail) {
+      formData.set("thumb", thumbnail.blob, "thumb.jpg");
+      formData.set("viewYaw", String(thumbnail.yaw));
+      formData.set("viewPitch", String(thumbnail.pitch));
+      if (thumbnail.time !== null) {
+        formData.set("viewTime", String(thumbnail.time));
+      }
+    }
 
     // XHR (rather than fetch) so upload progress is available — 360°
     // video files can be large enough that a bare "Uploading…" spinner
@@ -142,7 +217,7 @@ export default function MediaUploadForm({
     };
     xhr.onload = () => {
       setProgress(null);
-      let body: { media?: UploadedMedia; error?: string } = {};
+      let body: { media?: UploadedMedia; album?: AlbumOption | null; error?: string } = {};
       try {
         body = JSON.parse(xhr.responseText);
       } catch {
@@ -153,9 +228,9 @@ export default function MediaUploadForm({
         return;
       }
       setSuccess(
-        `"${body.media.title}" uploaded as a draft. Click Publish in the list below when it's ready to go live.`
+        `"${body.media.title}" uploaded as a draft. Click Publish in the list below when it's ready to go live, or click its title to change the thumbnail first.`
       );
-      onUploaded?.(body.media);
+      onUploaded?.(body.media, body.album ?? null);
       resetForm();
     };
     xhr.onerror = () => {
@@ -211,6 +286,56 @@ export default function MediaUploadForm({
         )}
       </div>
 
+      {file && fileUrl && (
+        <div className="mb-6">
+          <p className={labelClass}>
+            Thumbnail &amp; starting view{" "}
+            <span className="font-normal text-gray-500 dark:text-gray-400">
+              (optional — skip it and a random view is used)
+            </span>
+          </p>
+          <p className="mb-2 text-sm text-gray-600 dark:text-gray-400">
+            Drag to look around
+            {type === "video" ? " and use the Frame slider to choose a moment" : ""}
+            , then click <strong>Use this view as thumbnail</strong>. The
+            public 360&deg; Viewer will open on the same view.
+          </p>
+          <div className="aspect-video w-full overflow-hidden rounded-md">
+            <Viewer360
+              key={`${fileUrl}-${type}`}
+              media={{
+                id: "upload-preview",
+                title,
+                src: fileUrl,
+                thumb: null,
+                type,
+                viewYaw: null,
+                viewPitch: null,
+                viewTime: null,
+              }}
+              muted={muted}
+              setMuted={setMuted}
+              reverseDrag={reverseDrag}
+              setReverseDrag={setReverseDrag}
+              pickerMode
+              onPickView={handlePickView}
+            />
+          </div>
+          {pickedPreviewUrl && (
+            <div className="mt-3 flex flex-wrap items-end gap-4">
+              <ThumbnailPreview src={pickedPreviewUrl} label="Chosen thumbnail" />
+              <button
+                type="button"
+                onClick={clearPickedView}
+                className="mb-5 rounded-full border border-mc-blue/20 px-3 py-1 text-xs font-medium text-mc-blue transition hover:bg-black/5 dark:border-white/20 dark:text-white dark:hover:bg-white/10"
+              >
+                Use a random view instead
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="title" className={labelClass}>
@@ -232,12 +357,59 @@ export default function MediaUploadForm({
           <select
             id="type"
             value={type}
-            onChange={(e) => setType(e.target.value as MediaType)}
+            onChange={(e) => {
+              setType(e.target.value as MediaType);
+              clearPickedView();
+            }}
             className={inputClass}
           >
             <option value="photo">Photo</option>
             <option value="video">Video</option>
           </select>
+        </div>
+
+        <div>
+          <label htmlFor="collection" className={labelClass}>
+            Album
+          </label>
+          <select
+            id="collection"
+            value={collectionChoice}
+            onChange={(e) => chooseAlbum(e.target.value)}
+            className={inputClass}
+          >
+            <option value="">— None —</option>
+            {albums.map((album) => (
+              <option key={album.id} value={album.name}>
+                {album.name}
+              </option>
+            ))}
+            <option value={NEW_ALBUM}>+ New album…</option>
+          </select>
+          {collectionChoice === NEW_ALBUM && (
+            <>
+              <input
+                aria-label="New album name"
+                placeholder="Greece Spring 2026"
+                value={newCollection}
+                onChange={(e) => setNewCollection(e.target.value)}
+                className={`${inputClass} mt-2`}
+              />
+              <select
+                aria-label="New album label"
+                value={newAlbumCategory}
+                onChange={(e) => chooseNewAlbumCategory(e.target.value as MediaCategory | "")}
+                className={`${inputClass} mt-2`}
+              >
+                <option value="">Album label: none</option>
+                {CATEGORY_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    Album label: {opt.label}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
         </div>
 
         <div>
@@ -259,35 +431,9 @@ export default function MediaUploadForm({
               </option>
             ))}
           </select>
-        </div>
-
-        <div>
-          <label htmlFor="collection" className={labelClass}>
-            Album
-          </label>
-          <select
-            id="collection"
-            value={collectionChoice}
-            onChange={(e) => setCollectionChoice(e.target.value)}
-            className={inputClass}
-          >
-            <option value="">— None —</option>
-            {collections.map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-            <option value={NEW_ALBUM}>+ New album…</option>
-          </select>
-          {collectionChoice === NEW_ALBUM && (
-            <input
-              aria-label="New album name"
-              placeholder="Greece Spring 2026"
-              value={newCollection}
-              onChange={(e) => setNewCollection(e.target.value)}
-              className={`${inputClass} mt-2`}
-            />
-          )}
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            Defaults to the album&apos;s label.
+          </p>
         </div>
 
         <div>
@@ -391,10 +537,14 @@ export default function MediaUploadForm({
 
       <button
         type="submit"
-        disabled={progress !== null}
+        disabled={progress !== null || preparing}
         className="mt-6 w-full rounded-full bg-mc-gold px-4 py-2 text-sm font-bold text-mc-blue transition hover:bg-mc-blue hover:text-white disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
       >
-        {progress !== null ? "Uploading…" : "Upload as draft"}
+        {preparing
+          ? "Preparing thumbnail…"
+          : progress !== null
+            ? "Uploading…"
+            : "Upload as draft"}
       </button>
       <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
         New media is saved as a draft and won&apos;t appear on the public site
